@@ -23,6 +23,7 @@ func SetupUserRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware) {
 	users.Get("/:id", h.GetByID)
 
 	users.Post("/", h.Create)
+	users.Post("/login", h.Login)
 
 	users.Put("/:id", h.Update)
 

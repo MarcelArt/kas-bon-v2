@@ -123,3 +123,54 @@ func (h *UserHandler) GetByID(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(user, "User found"))
 }
+
+// Login authenticates a user and returns JWT tokens
+// @Summary Login user
+// @Description Authenticate a user with username/email and password, returns access and refresh tokens
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body models.LoginInput true "Login credentials"
+// @Success 200 {object} common.JSONResponse{items=models.LoginResponse} "Authentication successful"
+// @Failure 400 {object} common.JSONResponse "Invalid JSON format"
+// @Failure 401 {object} common.JSONResponse "Invalid credentials"
+// @Failure 500 {object} common.JSONResponse "Internal server error"
+// @Router /v1/users/login [post]
+func (h *UserHandler) Login(c fiber.Ctx) error {
+	var login models.LoginInput
+	if err := c.Bind().JSON(&login); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
+	}
+
+	user, err := h.repo.GetByUsernameOrEmail(login.Username)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "username or password invalid"))
+	}
+
+	ok, err := argon2id.ComparePasswordAndHash(login.Password, user.Password)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "unexpected error"))
+	}
+
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "username or password invalid"))
+	}
+
+	claims := map[string]any{
+		"sub":    user.Username,
+		"userId": user.ID,
+		"iss":    c.BaseURL(),
+	}
+	at, rt, err := common.GenerateJWTPair(claims, login.IsRemember)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed generating tokens"))
+	}
+
+	res := models.LoginResponse{
+		AccessToken:  at,
+		RefreshToken: rt,
+		User:         user,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(res, "Authenticated"))
+}

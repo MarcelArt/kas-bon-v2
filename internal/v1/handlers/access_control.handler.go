@@ -51,9 +51,9 @@ func (h *AccessControlHandler) GetAllRoles(c fiber.Ctx) error {
 // @Router			/v1/access-controls/permissions/{app}/{domain}/{user} [get]
 func (h *AccessControlHandler) GetPermissionsForUser(c fiber.Ctx) error {
 	user := c.Params("user")
-	app := c.Params("app")
+	// app := c.Params("app")
 	domain := c.Params("domain")
-	permissions, err := h.e.GetImplicitPermissionsForUser(user, app, domain)
+	permissions, err := h.e.GetImplicitPermissionsForUser(user, domain)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
 	}

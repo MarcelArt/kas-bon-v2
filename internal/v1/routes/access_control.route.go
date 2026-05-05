@@ -16,7 +16,7 @@ func SetupAccessControlRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddlewa
 	h := handlers.NewAccessControlHandler(configs.DB)
 
 	g.Get("/roles/:domain", h.GetAllRoles)
-	g.Get("/permissions/:domain/:user", h.GetPermissionsForUser)
+	g.Get("/permissions/:app/:domain/:user", h.GetPermissionsForUser)
 
 	g.Post("/eval", h.Eval)
 }

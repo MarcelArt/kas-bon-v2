@@ -84,6 +84,7 @@ require (
 )
 
 require (
+	github.com/alexedwards/argon2id v1.0.0
 	github.com/casbin/gorm-adapter/v2 v2.1.0
 	github.com/casbin/gorm-adapter/v3 v3.41.0
 	github.com/gofiber/contrib/v3/casbin v1.0.4

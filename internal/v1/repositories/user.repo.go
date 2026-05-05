@@ -8,7 +8,7 @@ import (
 )
 
 type IUserRepo interface {
-	Create(user models.User) (uint, error)
+	Create(user models.UserInput) (uint, error)
 	Read(c fiber.Ctx) (paginate.Page, []models.User)
 	Update(id any, user models.User) error
 	Delete(id any) error
@@ -30,7 +30,7 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 	}
 }
 
-func (r *UserRepo) Create(user models.User) (uint, error) {
+func (r *UserRepo) Create(user models.UserInput) (uint, error) {
 	err := r.db.Create(&user).Error
 	return user.ID, err
 }

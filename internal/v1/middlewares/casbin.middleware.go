@@ -23,7 +23,9 @@ func NewCasbinMiddleware(db *gorm.DB) *CasbinMiddleware {
 }
 
 func (m *CasbinMiddleware) PolicyLoader(c fiber.Ctx) error {
-	m.e.LoadPolicy()
+	if err := m.e.LoadPolicy(); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed loading policy engine"))
+	}
 	return c.Next()
 }
 

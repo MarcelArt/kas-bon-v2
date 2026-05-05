@@ -4,6 +4,7 @@ import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/alexedwards/argon2id"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -22,16 +23,22 @@ func NewUserHandler(repo repositories.IUserRepo) *UserHandler {
 // @Tags			users
 // @Accept			json
 // @Produce			json
-// @Param			request	body		models.User	true	"User object"
+// @Param			request	body		models.UserInput	true	"User object"
 // @Success			201		{object}	common.JSONResponse{items=int}
 // @Failure			400		{object}	common.JSONResponse
 // @Failure			500		{object}	common.JSONResponse
 // @Router			/v1/users [post]
 func (h *UserHandler) Create(c fiber.Ctx) error {
-	var user models.User
+	var user models.UserInput
 	if err := c.Bind().JSON(&user); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
+
+	password, err := argon2id.CreateHash(user.Password, argon2id.DefaultParams)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed hashing password"))
+	}
+	user.Password = password
 
 	id, err := h.repo.Create(user)
 	if err != nil {

@@ -22,6 +22,11 @@ func NewCasbinMiddleware(db *gorm.DB) *CasbinMiddleware {
 	return &CasbinMiddleware{e: e}
 }
 
+func (m *CasbinMiddleware) PolicyLoader(c fiber.Ctx) error {
+	m.e.LoadPolicy()
+	return c.Next()
+}
+
 func (m *CasbinMiddleware) HasPermission(permission string) func(c fiber.Ctx) error {
 	permParts := strings.Split(permission, "#")
 	res := permParts[0]

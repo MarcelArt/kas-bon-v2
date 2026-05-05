@@ -40,6 +40,7 @@ to quickly create a Cobra application.`,
 			FilePath: "./docs/swagger.json",
 			Path:     "swagger",
 			Title:    "Swagger API Docs",
+			CacheAge: 60,
 		}))
 
 		app.Get("/public/*", static.New("./public"))

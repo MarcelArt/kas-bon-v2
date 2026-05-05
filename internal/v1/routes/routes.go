@@ -10,6 +10,7 @@ func SetupRoutes(api fiber.Router) {
 	v1 := api.Group("/v1")
 
 	authz := middlewares.NewCasbinMiddleware(configs.DB)
+	v1.Use(authz.PolicyLoader)
 
 	SetupUserRoutes(v1, authz)
 	SetupAccessControlRoutes(v1, authz)

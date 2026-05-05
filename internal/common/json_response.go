@@ -1,6 +1,12 @@
 package common
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/gofiber/fiber/v3"
+	"gorm.io/gorm"
+)
 
 type JSONResponse struct {
 	Items     any    `json:"items"`
@@ -28,4 +34,12 @@ func NewJSONResponse(items any, message string) *JSONResponse {
 		IsSuccess: true,
 		Message:   message,
 	}
+}
+
+func StatusCodeFromError(err error) int {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return fiber.StatusNotFound
+	}
+
+	return fiber.StatusInternalServerError
 }

@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/usecases"
 	"github.com/alexedwards/argon2id"
+	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type UserHandler struct {
@@ -118,7 +123,7 @@ func (h *UserHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")
 	user, err := h.repo.GetByID(id)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed getting user"))
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(user, "User found"))
@@ -156,20 +161,41 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "username or password invalid"))
 	}
 
-	claims := map[string]any{
-		"sub":    user.Username,
-		"userId": user.ID,
-		"iss":    c.BaseURL(),
-	}
-	at, rt, err := common.GenerateJWTPair(claims, login.IsRemember)
+	res, err := usecases.InitGenerateTokenPairUsecase().SetCtx(c).SetUser(user).SetIsRemember(login.IsRemember).Execute()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed generating tokens"))
 	}
 
-	res := models.LoginResponse{
-		AccessToken:  at,
-		RefreshToken: rt,
-		User:         user,
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(res, "Authenticated"))
+}
+
+// @Summary		Refresh token
+// @Description	Generate a new token pair using the refresh token
+// @Tags			users
+// @Produce			json
+// @Param			X-Refresh-Token	header		string	true	"Refresh token"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			401				{object}	common.JSONResponse
+// @Failure			500				{object}	common.JSONResponse
+// @Router			/v1/users/refresh [post]
+func (h *UserHandler) Refresh(c fiber.Ctx) error {
+	token := jwtware.FromContext(c)
+	claims := token.Claims.(jwt.MapClaims)
+	id := claims["userId"]
+
+	isRemember, ok := claims["isRemember"].(bool)
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(fmt.Errorf("missing isRemember claim"), "invalid refresh token"))
+	}
+
+	user, err := h.repo.GetByID(id)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "failed getting user"))
+	}
+
+	res, err := usecases.InitGenerateTokenPairUsecase().SetCtx(c).SetUser(user).SetIsRemember(isRemember).Execute()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed generating tokens"))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(res, "Authenticated"))

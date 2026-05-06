@@ -25,9 +25,9 @@ func NewAccessControlHandler(db *gorm.DB) *AccessControlHandler {
 // @Description	Retrieve a list of all roles from the access control system
 // @Tags			access-controls
 // @Produce			json
-// @Param			domain	path		string	true	"Domain identifier"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			domain		path		string	true	"Domain identifier"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/access-controls/roles/{domain} [get]
 func (h *AccessControlHandler) GetAllRoles(c fiber.Ctx) error {
 	domain := c.Params("domain")
@@ -43,11 +43,11 @@ func (h *AccessControlHandler) GetAllRoles(c fiber.Ctx) error {
 // @Description	Retrieve all permissions assigned to a specific user
 // @Tags			access-controls
 // @Produce			json
-// @Param			app	path		string	true	"App identifier"
-// @Param			domain	path		string	true	"Domain identifier"
-// @Param			user	path		string	true	"User identifier"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			app			path		string	true	"App identifier"
+// @Param			domain		path		string	true	"Domain identifier"
+// @Param			user		path		string	true	"User identifier"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/access-controls/permissions/{app}/{domain}/{user} [get]
 func (h *AccessControlHandler) GetPermissionsForUser(c fiber.Ctx) error {
 	user := c.Params("user")
@@ -66,10 +66,10 @@ func (h *AccessControlHandler) GetPermissionsForUser(c fiber.Ctx) error {
 // @Tags			access-controls
 // @Accept			json
 // @Produce			json
-// @Param			request	body		models.AccessControlEval	true	"Access control evaluation request"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			request		body		models.AccessControlEval	true	"Access control evaluation request"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/access-controls/eval [post]
 func (h *AccessControlHandler) Eval(c fiber.Ctx) error {
 	var req models.AccessControlEval

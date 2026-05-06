@@ -27,10 +27,10 @@ func NewUserHandler(repo repositories.IUserRepo) *UserHandler {
 // @Tags			users
 // @Accept			json
 // @Produce			json
-// @Param			request	body		models.UserInput	true	"User object"
-// @Success			201		{object}	common.JSONResponse{items=int}
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			request		body		models.UserInput	true	"User object"
+// @Success			201			{object}	common.JSONResponse{items=int}
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/users [post]
 func (h *UserHandler) Create(c fiber.Ctx) error {
 	var user models.UserInput
@@ -56,13 +56,16 @@ func (h *UserHandler) Create(c fiber.Ctx) error {
 // @Summary		List users
 // @Description	Get a paginated list of users
 // @Tags			users
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			page	query		int		false	"Page"
-// @Param			size	query		int		false	"Size"
-// @Param			sort	query		string	false	"Sort"
-// @Param			filters	query		string	false	"Filter"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	false	"App identifier"
+// @Param			X-Domain	header		string	false	"Domain identifier"
+// @Param			page		query		int		false	"Page"
+// @Param			size		query		int		false	"Size"
+// @Param			sort		query		string	false	"Sort"
+// @Param			filters		query		string	false	"Filter"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/users [get]
 func (h *UserHandler) Read(c fiber.Ctx) error {
 	page, _ := h.repo.Read(c)
@@ -72,13 +75,16 @@ func (h *UserHandler) Read(c fiber.Ctx) error {
 // @Summary		Update a user
 // @Description	Update an existing user by ID
 // @Tags			users
+// @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			id		path		string		true	"User ID"
-// @Param			request	body		models.User	true	"User object"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string				false	"App identifier"
+// @Param			X-Domain	header		string				false	"Domain identifier"
+// @Param			id			path		string				true	"User ID"
+// @Param			request		body		models.User			true	"User object"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/users/{id} [put]
 func (h *UserHandler) Update(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -97,10 +103,13 @@ func (h *UserHandler) Update(c fiber.Ctx) error {
 // @Summary		Delete a user
 // @Description	Delete a user by ID
 // @Tags			users
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			id		path		string	true	"User ID"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	true	"App identifier"
+// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			id			path		string	true	"User ID"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/users/{id} [delete]
 func (h *UserHandler) Delete(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -114,10 +123,13 @@ func (h *UserHandler) Delete(c fiber.Ctx) error {
 // @Summary		Get user by ID
 // @Description	Retrieve a single user by their ID
 // @Tags			users
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			id		path		string	true	"User ID"
-// @Success			200		{object}	common.JSONResponse{items=models.User}
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	true	"App identifier"
+// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			id			path		string	true	"User ID"
+// @Success			200			{object}	common.JSONResponse{items=models.User}
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/users/{id} [get]
 func (h *UserHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -130,17 +142,17 @@ func (h *UserHandler) GetByID(c fiber.Ctx) error {
 }
 
 // Login authenticates a user and returns JWT tokens
-// @Summary Login user
-// @Description Authenticate a user with username/email and password, returns access and refresh tokens
-// @Tags users
-// @Accept json
-// @Produce json
-// @Param request body models.LoginInput true "Login credentials"
-// @Success 200 {object} common.JSONResponse{items=models.LoginResponse} "Authentication successful"
-// @Failure 400 {object} common.JSONResponse "Invalid JSON format"
-// @Failure 401 {object} common.JSONResponse "Invalid credentials"
-// @Failure 500 {object} common.JSONResponse "Internal server error"
-// @Router /v1/users/login [post]
+// @Summary		Login user
+// @Description	Authenticate a user with username/email and password, returns access and refresh tokens
+// @Tags			users
+// @Accept			json
+// @Produce			json
+// @Param			request		body		models.LoginInput		true	"Login credentials"
+// @Success			200			{object}	common.JSONResponse{items=models.LoginResponse}	"Authentication successful"
+// @Failure			400			{object}	common.JSONResponse	"Invalid JSON format"
+// @Failure			401			{object}	common.JSONResponse	"Invalid credentials"
+// @Failure			500			{object}	common.JSONResponse	"Internal server error"
+// @Router			/v1/users/login [post]
 func (h *UserHandler) Login(c fiber.Ctx) error {
 	var login models.LoginInput
 	if err := c.Bind().JSON(&login); err != nil {

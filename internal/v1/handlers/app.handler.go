@@ -20,12 +20,15 @@ func NewAppHandler(repo repositories.IAppRepo) *AppHandler {
 // @Summary		Create a new app
 // @Description	Create a new app with the provided JSON payload
 // @Tags			apps
+// @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			request	body		models.AppInput	true	"App object"
-// @Success			201		{object}	common.JSONResponse{items=int}
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string				true	"App identifier"
+// @Param			X-Domain	header		string				true	"Domain identifier"
+// @Param			request		body		models.AppInput		true	"App object"
+// @Success			201			{object}	common.JSONResponse{items=int}
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/apps [post]
 func (h *AppHandler) Create(c fiber.Ctx) error {
 	var app models.AppInput
@@ -44,13 +47,16 @@ func (h *AppHandler) Create(c fiber.Ctx) error {
 // @Summary		List apps
 // @Description	Get a paginated list of apps
 // @Tags			apps
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			page	query		int		false	"Page"
-// @Param			size	query		int		false	"Size"
-// @Param			sort	query		string	false	"Sort"
-// @Param			filters	query		string	false	"Filter"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	false	"App identifier"
+// @Param			X-Domain	header		string	false	"Domain identifier"
+// @Param			page		query		int		false	"Page"
+// @Param			size		query		int		false	"Size"
+// @Param			sort		query		string	false	"Sort"
+// @Param			filters		query		string	false	"Filter"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/apps [get]
 func (h *AppHandler) Read(c fiber.Ctx) error {
 	page, _ := h.repo.Read(c)
@@ -60,13 +66,16 @@ func (h *AppHandler) Read(c fiber.Ctx) error {
 // @Summary		Update an app
 // @Description	Update an existing app by ID
 // @Tags			apps
+// @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			id		path		string		true	"App ID"
-// @Param			request	body		models.App	true	"App object"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string			false	"App identifier"
+// @Param			X-Domain	header		string			false	"Domain identifier"
+// @Param			id			path		string			true	"App ID"
+// @Param			request		body		models.App		true	"App object"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/apps/{id} [put]
 func (h *AppHandler) Update(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -85,10 +94,13 @@ func (h *AppHandler) Update(c fiber.Ctx) error {
 // @Summary		Delete an app
 // @Description	Delete an app by ID
 // @Tags			apps
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			id		path		string	true	"App ID"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	true	"App identifier"
+// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			id			path		string	true	"App ID"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/apps/{id} [delete]
 func (h *AppHandler) Delete(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -102,10 +114,13 @@ func (h *AppHandler) Delete(c fiber.Ctx) error {
 // @Summary		Get app by ID
 // @Description	Retrieve a single app by their ID
 // @Tags			apps
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			id		path		string	true	"App ID"
-// @Success			200		{object}	common.JSONResponse{items=models.App}
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	true	"App identifier"
+// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			id			path		string	true	"App ID"
+// @Success			200			{object}	common.JSONResponse{items=models.App}
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/apps/{id} [get]
 func (h *AppHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")

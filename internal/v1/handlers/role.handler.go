@@ -20,12 +20,15 @@ func NewRoleHandler(repo repositories.IRoleRepo) *RoleHandler {
 // @Summary		Create a new role
 // @Description	Create a new role with the provided JSON payload
 // @Tags			roles
+// @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			request	body		models.RoleInput	true	"Role object"
-// @Success			201		{object}	common.JSONResponse{items=int}
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string				true	"App identifier"
+// @Param			X-Domain	header		string				true	"Domain identifier"
+// @Param			request		body		models.RoleInput	true	"Role object"
+// @Success			201			{object}	common.JSONResponse{items=int}
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/roles [post]
 func (h *RoleHandler) Create(c fiber.Ctx) error {
 	var role models.RoleInput
@@ -44,13 +47,16 @@ func (h *RoleHandler) Create(c fiber.Ctx) error {
 // @Summary		List roles
 // @Description	Get a paginated list of roles
 // @Tags			roles
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			page	query		int		false	"Page"
-// @Param			size	query		int		false	"Size"
-// @Param			sort	query		string	false	"Sort"
-// @Param			filters	query		string	false	"Filter"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	false	"App identifier"
+// @Param			X-Domain	header		string	false	"Domain identifier"
+// @Param			page		query		int		false	"Page"
+// @Param			size		query		int		false	"Size"
+// @Param			sort		query		string	false	"Sort"
+// @Param			filters		query		string	false	"Filter"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/roles [get]
 func (h *RoleHandler) Read(c fiber.Ctx) error {
 	page, _ := h.repo.Read(c)
@@ -60,13 +66,16 @@ func (h *RoleHandler) Read(c fiber.Ctx) error {
 // @Summary		Update a role
 // @Description	Update an existing role by ID
 // @Tags			roles
+// @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			id		path		string		true	"Role ID"
-// @Param			request	body		models.Role	true	"Role object"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			400		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string			false	"App identifier"
+// @Param			X-Domain	header		string			false	"Domain identifier"
+// @Param			id			path		string			true	"Role ID"
+// @Param			request		body		models.Role		true	"Role object"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			400			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/roles/{id} [put]
 func (h *RoleHandler) Update(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -85,10 +94,13 @@ func (h *RoleHandler) Update(c fiber.Ctx) error {
 // @Summary		Delete a role
 // @Description	Delete a role by ID
 // @Tags			roles
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			id		path		string	true	"Role ID"
-// @Success			200		{object}	common.JSONResponse
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	true	"App identifier"
+// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			id			path		string	true	"Role ID"
+// @Success			200			{object}	common.JSONResponse
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/roles/{id} [delete]
 func (h *RoleHandler) Delete(c fiber.Ctx) error {
 	id := c.Params("id")
@@ -102,10 +114,13 @@ func (h *RoleHandler) Delete(c fiber.Ctx) error {
 // @Summary		Get role by ID
 // @Description	Retrieve a single role by their ID
 // @Tags			roles
+// @Security		ApiKeyAuth
 // @Produce			json
-// @Param			id		path		string	true	"Role ID"
-// @Success			200		{object}	common.JSONResponse{items=models.Role}
-// @Failure			500		{object}	common.JSONResponse
+// @Param			X-App		header		string	true	"App identifier"
+// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			id			path		string	true	"Role ID"
+// @Success			200			{object}	common.JSONResponse{items=models.Role}
+// @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/roles/{id} [get]
 func (h *RoleHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")

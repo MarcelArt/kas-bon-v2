@@ -33,12 +33,19 @@ func (m *CasbinMiddleware) HasPermission(permission string) func(c fiber.Ctx) er
 	permParts := strings.Split(permission, "#")
 	res := permParts[0]
 	act := permParts[1]
-	sub := "kandar"
 
 	return func(c fiber.Ctx) error {
+		app := fiber.GetReqHeader[string](c, "X-App")
+		dom := fiber.GetReqHeader[string](c, "X-Domain")
+		claims := common.FiberCtxToClaims(c)
+		sub, err := claims.GetSubject()
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "invalid token"))
+		}
+
 		m.e.LoadPolicy()
 
-		ok, _ := m.e.Enforce(sub, res, act)
+		ok := common.IsAuthorized(m.e, sub, app, dom, res, act)
 		if !ok {
 			return c.Status(fiber.StatusForbidden).JSON(common.NewJSONResponse(ok, "unauthorized"))
 		}

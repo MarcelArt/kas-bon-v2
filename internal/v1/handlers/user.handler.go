@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
+	"github.com/MarcelArt/kas-bon-v2/internal/configs"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/usecases"
 	"github.com/alexedwards/argon2id"
-	jwtware "github.com/gofiber/contrib/v3/jwt"
 	"github.com/gofiber/fiber/v3"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type UserHandler struct {
@@ -39,18 +38,19 @@ func (h *UserHandler) Create(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	password, err := argon2id.CreateHash(user.Password, argon2id.DefaultParams)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed hashing password"))
-	}
-	user.Password = password
+	tx := configs.DB.Begin()
+	defer tx.Rollback()
 
-	id, err := h.repo.Create(user)
+	registerUser := usecases.InitRegisterUserUsecase(tx)
+	registerUser.User = user
+
+	id, err := registerUser.Execute()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed creating user"))
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(common.NewJSONResponse(id, "models.User created"))
+	tx.Commit()
+	return c.Status(fiber.StatusCreated).JSON(common.NewJSONResponse(id, "User created"))
 }
 
 // @Summary		List users
@@ -179,8 +179,7 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 // @Failure			500				{object}	common.JSONResponse
 // @Router			/v1/users/refresh [post]
 func (h *UserHandler) Refresh(c fiber.Ctx) error {
-	token := jwtware.FromContext(c)
-	claims := token.Claims.(jwt.MapClaims)
+	claims := common.FiberCtxToClaims(c)
 	id := claims["userId"]
 
 	isRemember, ok := claims["isRemember"].(bool)

@@ -6,10 +6,12 @@ import (
 
 	"github.com/MarcelArt/kas-bon-v2/internal/configs"
 	"github.com/MarcelArt/kas-bon-v2/internal/enums"
+	jwtware "github.com/gofiber/contrib/v3/jwt"
+	"github.com/gofiber/fiber/v3"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateJWTPair(claims map[string]any, isRemember bool) (string, string, error) {
+func GenerateJWTPair(claims map[string]any, permissions any, isRemember bool) (string, string, error) {
 	today := time.Now()
 	atExp := time.Minute * 5
 	rtExp := enums.Day
@@ -18,8 +20,9 @@ func GenerateJWTPair(claims map[string]any, isRemember bool) (string, string, er
 	}
 
 	atClaims := jwt.MapClaims{
-		"iat": today.Unix(),
-		"exp": today.Add(atExp).Unix(),
+		"iat":         today.Unix(),
+		"exp":         today.Add(atExp).Unix(),
+		"permissions": permissions,
 	}
 
 	rtClaims := jwt.MapClaims{
@@ -44,4 +47,9 @@ func GenerateJWTPair(claims map[string]any, isRemember bool) (string, string, er
 	}
 
 	return at, rt, nil
+}
+
+func FiberCtxToClaims(c fiber.Ctx) jwt.MapClaims {
+	token := jwtware.FromContext(c)
+	return token.Claims.(jwt.MapClaims)
 }

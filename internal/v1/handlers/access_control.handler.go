@@ -77,7 +77,6 @@ func (h *AccessControlHandler) Eval(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing request"))
 	}
 
-	ok, _ := h.e.Enforce(req.Sub, req.App, req.Dom, req.Obj, req.Act)
-
-	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(ok, "evaluated"))
+	ok := common.IsAuthorized(h.e, req.Sub, req.App, req.Dom, req.Obj, req.Act)
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(ok, "permitted"))
 }

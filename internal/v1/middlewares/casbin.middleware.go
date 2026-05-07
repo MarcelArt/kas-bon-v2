@@ -6,9 +6,7 @@ import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/casbin/casbin/v3"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gofiber/fiber/v3"
-	"gorm.io/gorm"
 )
 
 type CasbinMiddleware struct {
@@ -17,15 +15,11 @@ type CasbinMiddleware struct {
 	dRepo repositories.IDomainRepo
 }
 
-func NewCasbinMiddleware(db *gorm.DB) *CasbinMiddleware {
-	a, _ := gormadapter.NewAdapterByDB(db)
-
-	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
-
+func NewCasbinMiddleware(e *casbin.Enforcer, aRepo repositories.IAppRepo, dRepo repositories.IDomainRepo) *CasbinMiddleware {
 	return &CasbinMiddleware{
 		e:     e,
-		aRepo: repositories.NewAppRepo(db),
-		dRepo: repositories.NewDomainRepo(db),
+		aRepo: aRepo,
+		dRepo: dRepo,
 	}
 }
 

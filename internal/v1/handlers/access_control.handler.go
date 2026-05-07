@@ -1,23 +1,19 @@
 package handlers
 
 import (
+	"net/url"
+
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/casbin/casbin/v3"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gofiber/fiber/v3"
-	"gorm.io/gorm"
 )
 
 type AccessControlHandler struct {
 	e *casbin.Enforcer
 }
 
-func NewAccessControlHandler(db *gorm.DB) *AccessControlHandler {
-	a, _ := gormadapter.NewAdapterByDB(db)
-
-	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
-
+func NewAccessControlHandler(e *casbin.Enforcer) *AccessControlHandler {
 	return &AccessControlHandler{e: e}
 }
 
@@ -53,6 +49,10 @@ func (h *AccessControlHandler) GetPermissionsForUser(c fiber.Ctx) error {
 	user := c.Params("user")
 	// app := c.Params("app")
 	domain := c.Params("domain")
+
+	user, _ = url.QueryUnescape(user)
+	domain, _ = url.QueryUnescape(domain)
+
 	permissions, err := h.e.GetImplicitPermissionsForUser(user, domain)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))

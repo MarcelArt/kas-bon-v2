@@ -4,16 +4,23 @@ import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/casbin/casbin/v3"
 	"github.com/gofiber/fiber/v3"
 )
 
 type RoleHandler struct {
-	repo repositories.IRoleRepo
+	repo  repositories.IRoleRepo
+	aRepo repositories.IAppRepo
+	dRepo repositories.IDomainRepo
+	e     *casbin.Enforcer
 }
 
-func NewRoleHandler(repo repositories.IRoleRepo) *RoleHandler {
+func NewRoleHandler(repo repositories.IRoleRepo, aRepo repositories.IAppRepo, dRepo repositories.IDomainRepo, e *casbin.Enforcer) *RoleHandler {
 	return &RoleHandler{
-		repo: repo,
+		repo:  repo,
+		aRepo: aRepo,
+		dRepo: dRepo,
+		e:     e,
 	}
 }
 
@@ -131,4 +138,36 @@ func (h *RoleHandler) GetByID(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(role, "Role found"))
+}
+
+// @Summary		Get role permissions
+// @Description	Retrieve implicit permissions for a role by ID
+// @Tags			roles
+// @Security		ApiKeyAuth
+// @Produce			json
+// @Param			X-App-Id		header		int		true	"App identifier"
+// @Param			X-Domain-Id	header		int		true	"Domain identifier"
+// @Param			id				path		string	true	"Role ID"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			400				{object}	common.JSONResponse
+// @Failure			500				{object}	common.JSONResponse
+// @Router			/v1/roles/{id}/permissions [get]
+func (h *RoleHandler) GetPermissions(c fiber.Ctx) error {
+	id := c.Params("id")
+
+	role, err := h.repo.GetByID(id)
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting role"))
+	}
+	dom, err := h.dRepo.GetByID(role.DomainID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id header"))
+	}
+
+	permissions, err := h.e.GetImplicitPermissionsForUser(role.Name, dom.Name)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(permissions, "Success retrieving permissions"))
 }

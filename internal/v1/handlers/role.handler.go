@@ -12,14 +12,16 @@ type RoleHandler struct {
 	repo  repositories.IRoleRepo
 	aRepo repositories.IAppRepo
 	dRepo repositories.IDomainRepo
+	pRepo repositories.IPermissionRepo
 	e     *casbin.Enforcer
 }
 
-func NewRoleHandler(repo repositories.IRoleRepo, aRepo repositories.IAppRepo, dRepo repositories.IDomainRepo, e *casbin.Enforcer) *RoleHandler {
+func NewRoleHandler(repo repositories.IRoleRepo, aRepo repositories.IAppRepo, dRepo repositories.IDomainRepo, pRepo repositories.IPermissionRepo, e *casbin.Enforcer) *RoleHandler {
 	return &RoleHandler{
 		repo:  repo,
 		aRepo: aRepo,
 		dRepo: dRepo,
+		pRepo: pRepo,
 		e:     e,
 	}
 }
@@ -170,4 +172,61 @@ func (h *RoleHandler) GetPermissions(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(permissions, "Success retrieving permissions"))
+}
+
+// @Summary		Assign permissions to role
+// @Description	Assign permissions to a role by ID
+// @Tags			roles
+// @Security		ApiKeyAuth
+// @Accept			json
+// @Produce			json
+// @Param			X-App-Id		header		int			true	"App identifier"
+// @Param			X-Domain-Id	header		int			true	"Domain identifier"
+// @Param			id				path		string		true	"Role ID"
+// @Param			request			body		[]uint		true	"Permission IDs"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			400				{object}	common.JSONResponse
+// @Failure			500				{object}	common.JSONResponse
+// @Router			/v1/roles/{id}/permissions [patch]
+func (h *RoleHandler) AssignPermissions(c fiber.Ctx) error {
+	appID := fiber.GetReqHeader[uint](c, "X-App-Id")
+
+	var permissionIDs []uint
+	if err := c.Bind().JSON(&permissionIDs); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
+	}
+
+	app, err := h.aRepo.GetByID(appID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid app id header"))
+	}
+
+	role, err := h.repo.GetByID(c.Params("id"))
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting role"))
+	}
+
+	dom, err := h.dRepo.GetByID(role.DomainID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving domain"))
+	}
+
+	permissions, err := h.pRepo.GetDistinctByIDs(permissionIDs)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
+	}
+
+	if _, err := h.e.RemoveFilteredPolicy(0, role.Name, app.Name, dom.Name); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed removing policy"))
+	}
+
+	for _, permission := range permissions {
+		res, act := common.ExtractPermissionResourceAndAction(permission)
+
+		if _, err := h.e.AddPolicy(role.Name, app.Name, dom.Name, res, act); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed adding policy"))
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(permissions, "Success assigning permissions"))
 }

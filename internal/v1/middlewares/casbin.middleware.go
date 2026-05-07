@@ -1,8 +1,6 @@
 package middlewares
 
 import (
-	"strings"
-
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/casbin/casbin/v3"
@@ -31,9 +29,7 @@ func (m *CasbinMiddleware) PolicyLoader(c fiber.Ctx) error {
 }
 
 func (m *CasbinMiddleware) HasPermission(permission string) func(c fiber.Ctx) error {
-	permParts := strings.Split(permission, "#")
-	res := permParts[0]
-	act := permParts[1]
+	res, act := common.ExtractPermissionResourceAndAction(permission)
 
 	return func(c fiber.Ctx) error {
 		appID := fiber.GetReqHeader[uint](c, "X-App-Id")

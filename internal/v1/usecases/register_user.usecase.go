@@ -17,6 +17,7 @@ type RegisterUserUsecase struct {
 
 	uRepo repositories.IUserRepo
 	dRepo repositories.IDomainRepo
+	rRepo repositories.IRoleRepo
 	e     *casbin.Enforcer
 }
 
@@ -28,6 +29,7 @@ func InitRegisterUserUsecase(tx *gorm.DB) *RegisterUserUsecase {
 	return &RegisterUserUsecase{
 		uRepo: repositories.NewUserRepo(tx),
 		dRepo: repositories.NewDomainRepo(tx),
+		rRepo: repositories.NewRoleRepo(tx),
 		e:     e,
 	}
 }
@@ -36,10 +38,9 @@ func (u *RegisterUserUsecase) Execute() (uint, error) {
 	user := u.User
 
 	dom := fmt.Sprintf("%s's organization", u.User.Username)
-	role := "Owner"
 
-	u.e.AddPolicy(role, enums.AppName, dom, enums.ResourceAll, enums.PermissionFull)
-	u.e.AddGroupingPolicy(u.User.Username, role, dom)
+	u.e.AddPolicy(enums.RoleDefault, enums.AppName, dom, enums.ResourceAll, enums.PermissionFull)
+	u.e.AddGroupingPolicy(u.User.Username, enums.RoleDefault, dom)
 
 	password, err := argon2id.CreateHash(user.Password, argon2id.DefaultParams)
 	if err != nil {
@@ -47,12 +48,16 @@ func (u *RegisterUserUsecase) Execute() (uint, error) {
 	}
 	user.Password = password
 
-	_, err = u.dRepo.Create(models.DomainInput{
+	domainID, err := u.dRepo.Create(models.DomainInput{
 		Name:           dom,
 		IsOrganization: true,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed creating domain: %w", err)
+	}
+
+	if _, err := u.rRepo.Create(models.RoleInput{Name: enums.RoleDefault, DomainID: domainID}); err != nil {
+		return 0, fmt.Errorf("failed creating default role: %w", err)
 	}
 
 	return u.uRepo.Create(user)

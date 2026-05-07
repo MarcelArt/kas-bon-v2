@@ -9,3 +9,6 @@ go: swag
 
 migrate:
 	@go run main.go migrate
+
+migrate-force:
+	@go run main.go migrate --drop

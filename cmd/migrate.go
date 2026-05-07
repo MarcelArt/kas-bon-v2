@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var isDrop bool
+
 // migrateCmd represents the migrate command
 var migrateCmd = &cobra.Command{
 	Use:   "migrate",
@@ -21,6 +23,9 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		configs.SetupENV()
 		configs.ConnectDB()
+		if isDrop {
+			configs.DropDB()
+		}
 		configs.MigrateDB()
 	},
 }
@@ -33,6 +38,7 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// migrateCmd.PersistentFlags().String("foo", "", "A help for foo")
+	migrateCmd.PersistentFlags().BoolVar(&isDrop, "drop", false, "Whether to drop the db first")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

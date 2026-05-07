@@ -1,3 +1,3 @@
 package enums
 
-const AppName = "Policy Tidur"
+const AppName = "Entschuldigung"

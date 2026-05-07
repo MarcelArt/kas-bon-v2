@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/MarcelArt/kas-bon-v2/internal/enums"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -40,8 +41,12 @@ func MigrateDB() error {
 	err := db.AutoMigrate(
 		models.User{},
 		models.Domain{},
+		models.App{},
+		models.Role{},
 	)
 	fmt.Println("Database Migrated")
+
+	seedApp()
 
 	return err
 }
@@ -51,8 +56,16 @@ func DropDB() error {
 	err := db.Migrator().DropTable(
 		models.User{},
 		models.Domain{},
+		models.App{},
+		models.Role{},
 	)
 	fmt.Println("Database Dropped")
 
 	return err
+}
+
+func seedApp() {
+	DB.Create(&models.App{
+		Name: enums.AppName,
+	})
 }

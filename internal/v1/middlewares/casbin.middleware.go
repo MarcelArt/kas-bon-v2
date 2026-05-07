@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/casbin/casbin/v3"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gofiber/fiber/v3"
@@ -11,7 +12,9 @@ import (
 )
 
 type CasbinMiddleware struct {
-	e *casbin.Enforcer
+	e     *casbin.Enforcer
+	aRepo repositories.IAppRepo
+	dRepo repositories.IDomainRepo
 }
 
 func NewCasbinMiddleware(db *gorm.DB) *CasbinMiddleware {
@@ -19,7 +22,11 @@ func NewCasbinMiddleware(db *gorm.DB) *CasbinMiddleware {
 
 	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
 
-	return &CasbinMiddleware{e: e}
+	return &CasbinMiddleware{
+		e:     e,
+		aRepo: repositories.NewAppRepo(db),
+		dRepo: repositories.NewDomainRepo(db),
+	}
 }
 
 func (m *CasbinMiddleware) PolicyLoader(c fiber.Ctx) error {
@@ -35,8 +42,19 @@ func (m *CasbinMiddleware) HasPermission(permission string) func(c fiber.Ctx) er
 	act := permParts[1]
 
 	return func(c fiber.Ctx) error {
-		app := fiber.GetReqHeader[string](c, "X-App")
-		dom := fiber.GetReqHeader[string](c, "X-Domain")
+		appID := fiber.GetReqHeader[uint](c, "X-App-Id")
+		domID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
+
+		app, err := m.aRepo.GetByID(appID)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid app id"))
+		}
+
+		dom, err := m.dRepo.GetByID(domID)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id"))
+		}
+
 		claims := common.FiberCtxToClaims(c)
 		sub, err := claims.GetSubject()
 		if err != nil {
@@ -45,7 +63,7 @@ func (m *CasbinMiddleware) HasPermission(permission string) func(c fiber.Ctx) er
 
 		m.e.LoadPolicy()
 
-		ok := common.IsAuthorized(m.e, sub, app, dom, res, act)
+		ok := common.IsAuthorized(m.e, sub, app.Name, dom.Name, res, act)
 		if !ok {
 			return c.Status(fiber.StatusForbidden).JSON(common.NewJSONResponse(ok, "unauthorized"))
 		}

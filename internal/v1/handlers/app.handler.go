@@ -23,8 +23,8 @@ func NewAppHandler(repo repositories.IAppRepo) *AppHandler {
 // @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			X-App		header		string				true	"App identifier"
-// @Param			X-Domain	header		string				true	"Domain identifier"
+// @Param			X-App-Id		header		int				true	"App identifier"
+// @Param			X-Domain-Id	header		int				true	"Domain identifier"
 // @Param			request		body		models.AppInput		true	"App object"
 // @Success			201			{object}	common.JSONResponse{items=int}
 // @Failure			400			{object}	common.JSONResponse
@@ -49,8 +49,8 @@ func (h *AppHandler) Create(c fiber.Ctx) error {
 // @Tags			apps
 // @Security		ApiKeyAuth
 // @Produce			json
-// @Param			X-App		header		string	false	"App identifier"
-// @Param			X-Domain	header		string	false	"Domain identifier"
+// @Param			X-App-Id		header		int	false	"App identifier"
+// @Param			X-Domain-Id	header		int	false	"Domain identifier"
 // @Param			page		query		int		false	"Page"
 // @Param			size		query		int		false	"Size"
 // @Param			sort		query		string	false	"Sort"
@@ -69,8 +69,8 @@ func (h *AppHandler) Read(c fiber.Ctx) error {
 // @Security		ApiKeyAuth
 // @Accept			json
 // @Produce			json
-// @Param			X-App		header		string			false	"App identifier"
-// @Param			X-Domain	header		string			false	"Domain identifier"
+// @Param			X-App-Id		header		int			false	"App identifier"
+// @Param			X-Domain-Id	header		int			false	"Domain identifier"
 // @Param			id			path		string			true	"App ID"
 // @Param			request		body		models.App		true	"App object"
 // @Success			200			{object}	common.JSONResponse
@@ -96,8 +96,8 @@ func (h *AppHandler) Update(c fiber.Ctx) error {
 // @Tags			apps
 // @Security		ApiKeyAuth
 // @Produce			json
-// @Param			X-App		header		string	true	"App identifier"
-// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			X-App-Id		header		int	true	"App identifier"
+// @Param			X-Domain-Id	header		int	true	"Domain identifier"
 // @Param			id			path		string	true	"App ID"
 // @Success			200			{object}	common.JSONResponse
 // @Failure			500			{object}	common.JSONResponse
@@ -116,8 +116,8 @@ func (h *AppHandler) Delete(c fiber.Ctx) error {
 // @Tags			apps
 // @Security		ApiKeyAuth
 // @Produce			json
-// @Param			X-App		header		string	true	"App identifier"
-// @Param			X-Domain	header		string	true	"Domain identifier"
+// @Param			X-App-Id		header		int	true	"App identifier"
+// @Param			X-Domain-Id	header		int	true	"Domain identifier"
 // @Param			id			path		string	true	"App ID"
 // @Success			200			{object}	common.JSONResponse{items=models.App}
 // @Failure			500			{object}	common.JSONResponse

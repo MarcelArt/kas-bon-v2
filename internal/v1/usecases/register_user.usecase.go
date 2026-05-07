@@ -18,6 +18,7 @@ type RegisterUserUsecase struct {
 	uRepo repositories.IUserRepo
 	dRepo repositories.IDomainRepo
 	rRepo repositories.IRoleRepo
+	pRepo repositories.IPermissionRepo
 	e     *casbin.Enforcer
 }
 
@@ -30,6 +31,7 @@ func InitRegisterUserUsecase(tx *gorm.DB) *RegisterUserUsecase {
 		uRepo: repositories.NewUserRepo(tx),
 		dRepo: repositories.NewDomainRepo(tx),
 		rRepo: repositories.NewRoleRepo(tx),
+		pRepo: repositories.NewPermissionRepo(tx),
 		e:     e,
 	}
 }
@@ -58,6 +60,11 @@ func (u *RegisterUserUsecase) Execute() (uint, error) {
 
 	if _, err := u.rRepo.Create(models.RoleInput{Name: enums.RoleDefault, DomainID: domainID}); err != nil {
 		return 0, fmt.Errorf("failed creating default role: %w", err)
+	}
+
+	permission := fmt.Sprintf("%s#%s", enums.ResourceAll, enums.PermissionFull)
+	if _, err := u.pRepo.Create(models.PermissionInput{Name: permission, AppID: enums.AppID}); err != nil {
+		return 0, fmt.Errorf("failed creating default permission: %w", err)
 	}
 
 	return u.uRepo.Create(user)

@@ -14,6 +14,7 @@ func SetupRoutes(api fiber.Router) {
 
 	SetupUserRoutes(v1, authz)
 	SetupRoleRoutes(v1, authz)
+	SetupPermissionRoutes(v1, authz)
 	SetupAppRoutes(v1, authz)
 	SetupDomainRoutes(v1, authz)
 	SetupAccessControlRoutes(v1, authz)

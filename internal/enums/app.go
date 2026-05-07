@@ -1,3 +1,6 @@
 package enums
 
-const AppName = "Entschuldigung"
+const (
+	AppName = "Entschuldigung"
+	AppID   = 1
+)

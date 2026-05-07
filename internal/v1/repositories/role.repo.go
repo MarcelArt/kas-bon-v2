@@ -9,7 +9,7 @@ import (
 
 type IRoleRepo interface {
 	Create(role models.RoleInput) (uint, error)
-	Read(c fiber.Ctx) (paginate.Page, []models.Role)
+	Read(c fiber.Ctx, domainID any) (paginate.Page, []models.Role)
 	Update(id any, role models.Role) error
 	Delete(id any) error
 	GetByID(id any) (models.Role, error)
@@ -24,7 +24,7 @@ func NewRoleRepo(db *gorm.DB) *RoleRepo {
 	return &RoleRepo{
 		db: db,
 		pageQuery: `
-			select * from roles where deleted_at isnull
+			select * from roles where deleted_at isnull and domain_id = ?
 		`,
 	}
 }
@@ -34,11 +34,11 @@ func (r *RoleRepo) Create(role models.RoleInput) (uint, error) {
 	return role.ID, err
 }
 
-func (r *RoleRepo) Read(c fiber.Ctx) (paginate.Page, []models.Role) {
+func (r *RoleRepo) Read(c fiber.Ctx, domainID any) (paginate.Page, []models.Role) {
 	var roles []models.Role
 	pg := paginate.New()
 
-	stmt := r.db.Raw(r.pageQuery)
+	stmt := r.db.Raw(r.pageQuery, domainID)
 
 	page := pg.With(stmt).Request(c.Request()).Response(&roles)
 	return page, roles

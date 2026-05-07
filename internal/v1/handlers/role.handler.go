@@ -59,7 +59,8 @@ func (h *RoleHandler) Create(c fiber.Ctx) error {
 // @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/roles [get]
 func (h *RoleHandler) Read(c fiber.Ctx) error {
-	page, _ := h.repo.Read(c)
+	domID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
+	page, _ := h.repo.Read(c, domID)
 	return c.Status(fiber.StatusOK).JSON(page)
 }
 

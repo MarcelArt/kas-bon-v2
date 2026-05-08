@@ -1,6 +1,6 @@
 # Phase 4 — Apps, Roles & Permissions
 
-CRUD for apps, roles, and permissions, plus permission assignment to roles.
+CRUD for apps, roles, and permissions, plus permission assignment to roles. Uses TanStack Query for data fetching and TanStack Form + Zod for forms.
 
 ## 1. App Management
 
@@ -13,6 +13,12 @@ CRUD for apps, roles, and permissions, plus permission assignment to roles.
 - `createAppFn(body: AppInput)` — `POST /v1/apps`
 - `updateAppFn(id, body)` — `PUT /v1/apps/{id}`
 - `deleteAppFn(id)` — `DELETE /v1/apps/{id}`
+
+### App Query Hooks
+
+**File:** `src/lib/apps.query.ts`
+
+- `useApps(opts)`, `useApp(id)`, `useCreateAppMutation()`, `useUpdateAppMutation()`, `useDeleteAppMutation()`
 
 ### App List Page
 
@@ -50,6 +56,12 @@ Display name, description, timestamps. Edit form and delete button.
 - `deleteRoleFn(id)` — `DELETE /v1/roles/{id}`
 - `getRolePermissionsFn(id)` — `GET /v1/roles/{id}/permissions`
 - `assignRolePermissionsFn(id, permissionIds: number[])` — `PATCH /v1/roles/{id}/permissions`
+
+### Role Query Hooks
+
+**File:** `src/lib/roles.query.ts`
+
+- `useRoles(opts)`, `useRole(id)`, `useCreateRoleMutation()`, `useUpdateRoleMutation()`, `useDeleteRoleMutation()`, `useRolePermissions(id)`, `useAssignRolePermissionsMutation()`
 
 ### Role List Page
 
@@ -97,6 +109,12 @@ Three sections:
 - `createPermissionFn(body: PermissionInput)` — `POST /v1/permissions`
 - `updatePermissionFn(id, body)` — `PUT /v1/permissions/{id}`
 - `deletePermissionFn(id)` — `DELETE /v1/permissions/{id}`
+
+### Permission Query Hooks
+
+**File:** `src/lib/permissions.query.ts`
+
+- `usePermissions(opts)`, `usePermission(id)`, `useCreatePermissionMutation()`, `useUpdatePermissionMutation()`, `useDeletePermissionMutation()`
 
 ### Permission List Page
 
@@ -167,8 +185,11 @@ bunx shadcn add select textarea form popover command
 | File | Action |
 |---|---|
 | `src/lib/apps.server.ts` | Create: app server functions |
+| `src/lib/apps.query.ts` | Create: TanStack Query hooks for apps |
 | `src/lib/roles.server.ts` | Create: role server functions |
+| `src/lib/roles.query.ts` | Create: TanStack Query hooks for roles |
 | `src/lib/permissions.server.ts` | Create: permission server functions |
+| `src/lib/permissions.query.ts` | Create: TanStack Query hooks for permissions |
 | `src/routes/_authenticated/apps/index.tsx` | Create: app list page |
 | `src/routes/_authenticated/apps/$appId.tsx` | Create: app detail page |
 | `src/routes/_authenticated/roles/index.tsx` | Create: role list page |

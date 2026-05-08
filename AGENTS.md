@@ -4,7 +4,7 @@
 
 Go backend API + React frontend for an RBAC-based authentication and authorization system.
 Backend: Fiber v3, GORM, PostgreSQL, Casbin v3, JWT, Cobra CLI.
-Frontend (`web/`): React 19, TanStack Start/Router, shadcn/ui, Tailwind CSS v4, Vitest.
+Frontend (`web/`): React 19, TanStack Start/Router/Query/Form, Zod, shadcn/ui, Tailwind CSS v4, Vitest.
 
 ## Build & Run Commands
 

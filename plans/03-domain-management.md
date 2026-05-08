@@ -1,6 +1,6 @@
 # Phase 3 — Domain Management
 
-Nested organization tree, domain CRUD, and tree navigation.
+Nested organization tree, domain CRUD, and tree navigation. Uses TanStack Query for data fetching and TanStack Form + Zod for forms.
 
 Domains support nesting via `parentId` — a domain can have a parent domain, forming a tree. Domains also have an `isOrganization` flag.
 
@@ -14,7 +14,17 @@ Domains support nesting via `parentId` — a domain can have a parent domain, fo
 - `updateDomainFn(id, body: Partial<Domain>)` — `PUT /v1/domains/{id}`
 - `deleteDomainFn(id)` — `DELETE /v1/domains/{id}`
 
-## 2. Domain List Page — Tree View
+## 2. Domain Query Hooks (TanStack Query)
+
+**File:** `src/lib/domains.query.ts`
+
+- `useDomains(opts)` — `useQuery`, key: `["domains", opts]`
+- `useDomain(id)` — `useQuery`, key: `["domains", id]`
+- `useCreateDomainMutation()` — `useMutation`, invalidates `["domains"]`
+- `useUpdateDomainMutation()` — `useMutation`, invalidates `["domains", id]`
+- `useDeleteDomainMutation()` — `useMutation`, invalidates `["domains"]`
+
+## 3. Domain List Page — Tree View
 
 **File:** `src/routes/_authenticated/domains/index.tsx`
 
@@ -133,6 +143,7 @@ bunx shadcn add collapsible breadcrumb select switch
 | File | Action |
 |---|---|
 | `src/lib/domains.server.ts` | Create: domain server functions |
+| `src/lib/domains.query.ts` | Create: TanStack Query hooks for domains |
 | `src/routes/_authenticated/domains/index.tsx` | Create: domain tree page |
 | `src/routes/_authenticated/domains/$domainId.tsx` | Create: domain detail page |
 | `src/components/domains/domain-tree.tsx` | Create: recursive tree component |

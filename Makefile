@@ -12,3 +12,5 @@ migrate:
 
 migrate-force:
 	@go run main.go migrate --drop
+
+# bunx --bun shadcn@latest init --preset b2p8PagwS --template start --pointer

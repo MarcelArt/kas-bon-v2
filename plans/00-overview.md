@@ -32,10 +32,20 @@ This gates:
 ## Global Architecture Decisions
 
 - **Server functions**: Use `createServerFn` from TanStack Start for all API calls (keeps tokens server-side)
-- **Route loaders**: Fetch data in route loaders via server functions for SSR
+- **Data fetching**: TanStack Query (`@tanstack/react-query`) for all client-side data fetching, caching, and mutations. Use `@tanstack/react-router-ssr-query` (already installed) to integrate Query with Router. Define query keys and query/mutation functions in server files.
+- **Forms**: TanStack Form (`@tanstack/react-form`) for all form state management. Use Zod (`zod`) for form validation schemas. Do NOT use react-hook-form or formik.
+- **Validation**: Zod (`zod`) for all runtime validation — form inputs, API response parsing, and schema definitions.
+- **Route loaders**: Use TanStack Query's router integration for SSR data loading (query hydration from server to client)
 - **Auth state**: Access/refresh tokens stored in cookies (httpOnly preferred); user + permissions in context
 - **API client**: Shared fetch wrapper in `src/lib/api.ts` that attaches `Authorization`, `X-App-Id`, `X-Domain-Id` headers
 - **Path alias**: All imports via `@/`
 - **Component library**: shadcn/ui (radix-lyra) — add components via `bunx shadcn add <name>`
 - **Icons**: `@phosphor-icons/react` only
 - **Font**: JetBrains Mono Variable (already configured)
+
+### Libraries to Install (Phase 1)
+
+```bash
+cd web
+bun add @tanstack/react-query @tanstack/react-form @tanstack/zod-form-adapter zod
+```

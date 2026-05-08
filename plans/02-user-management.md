@@ -1,6 +1,6 @@
 # Phase 2 — User Management
 
-User list, detail, CRUD, and role assignment.
+User list, detail, CRUD, and role assignment. Uses TanStack Query for data fetching and TanStack Form + Zod for forms.
 
 ## 1. Server Functions
 
@@ -19,7 +19,20 @@ Using `createServerFn`:
 
 All functions attach `X-App-Id` and `X-Domain-Id` headers from context.
 
-## 2. User List Page
+## 2. User Query Hooks (TanStack Query)
+
+**File:** `src/lib/users.query.ts`
+
+- `useUsers(opts)` — `useQuery`, key: `["users", opts]`
+- `useUser(id)` — `useQuery`, key: `["users", id]`
+- `useUserRoles(id)` — `useQuery`, key: `["users", id, "roles"]`
+- `useUserPermissions(id)` — `useQuery`, key: `["users", id, "permissions"]`
+- `useCreateUserMutation()` — `useMutation` wrapping `createUserFn`, invalidates `["users"]`
+- `useUpdateUserMutation()` — `useMutation` wrapping `updateUserFn`, invalidates `["users", id]`
+- `useDeleteUserMutation()` — `useMutation` wrapping `deleteUserFn`, invalidates `["users"]`
+- `useAssignUserRolesMutation()` — `useMutation` wrapping `assignUserRolesFn`, invalidates `["users", id, "roles"]`
+
+## 3. User List Page
 
 **File:** `src/routes/_authenticated/users/index.tsx`
 
@@ -63,19 +76,20 @@ Two sections:
 
 **File:** `src/components/users/create-user-dialog.tsx`
 
+- TanStack Form with Zod validation (`userInputSchema`)
 - Modal form with fields: username, email, password
-- Calls `createUserFn`
-- On success: toast notification, refresh user list
+- Calls `useCreateUserMutation()`
+- On success: toast notification, query auto-invalidates user list
 - On error: show field-level errors
 
 ## 5. Edit User Dialog
 
 **File:** `src/components/users/edit-user-dialog.tsx`
 
-- Modal form pre-filled with current user data
+- TanStack Form with Zod validation, pre-filled with current user data
 - Fields: username, email (password change is separate or omitted)
-- Calls `updateUserFn`
-- On success: toast, refresh data
+- Calls `useUpdateUserMutation()`
+- On success: toast, query auto-invalidates
 
 ## 6. Delete Confirmation Dialog
 
@@ -120,6 +134,7 @@ bunx shadcn add table dialog dropdown-menu badge tabs alert-dialog
 | File | Action |
 |---|---|
 | `src/lib/users.server.ts` | Create: user server functions |
+| `src/lib/users.query.ts` | Create: TanStack Query hooks for users |
 | `src/routes/_authenticated/users/index.tsx` | Create: user list page |
 | `src/routes/_authenticated/users/$userId.tsx` | Create: user detail page |
 | `src/components/users/create-user-dialog.tsx` | Create: create user dialog |

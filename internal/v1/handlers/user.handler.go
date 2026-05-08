@@ -248,7 +248,7 @@ func (h *UserHandler) GetRoles(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(roles, "Roles found"))
 }
 
-// @Summary		Get role permissions
+// @Summary		Get user permissions
 // @Description	Retrieve implicit permissions for a user by ID
 // @Tags			users
 // @Security		ApiKeyAuth

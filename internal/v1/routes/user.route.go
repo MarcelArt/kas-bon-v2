@@ -12,7 +12,7 @@ import (
 func SetupUserRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, e *casbin.Enforcer) {
 	users := v1.Group("/users")
 
-	h := handlers.NewUserHandler(repositories.NewUserRepo(configs.DB), repositories.NewDomainRepo(configs.DB), e)
+	h := handlers.NewUserHandler(repositories.NewUserRepo(configs.DB), repositories.NewDomainRepo(configs.DB), repositories.NewRoleRepo(configs.DB), e)
 
 	users.Get("/", middlewares.Authn(), authz.HasPermission("users#read"), h.Read)
 	users.Get("/:id", middlewares.Authn(), authz.HasPermission("users#read"), h.GetByID)
@@ -24,6 +24,8 @@ func SetupUserRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, e *ca
 	users.Post("/refresh", middlewares.Refresh(), h.Refresh)
 
 	users.Put("/:id", middlewares.Authn(), authz.HasPermission("users#update"), h.Update)
+
+	users.Patch("/:id/roles", middlewares.Authn(), authz.HasPermission("users#update"), h.AssignRoles)
 
 	users.Delete("/:id", middlewares.Authn(), authz.HasPermission("users#delete"), h.Delete)
 }

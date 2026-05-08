@@ -13,6 +13,7 @@ type IRoleRepo interface {
 	Update(id any, role models.Role) error
 	Delete(id any) error
 	GetByID(id any) (models.Role, error)
+	GetDistinctByIDs(ids []uint) ([]string, error)
 }
 
 type RoleRepo struct {
@@ -56,4 +57,10 @@ func (r *RoleRepo) GetByID(id any) (models.Role, error) {
 	var role models.Role
 	err := r.db.Where("id = ?", id).First(&role).Error
 	return role, err
+}
+
+func (r *RoleRepo) GetDistinctByIDs(ids []uint) ([]string, error) {
+	var roles []string
+	err := r.db.Model(models.Role{}).Where("id in ?", ids).Distinct("name").Pluck("name", &roles).Error
+	return roles, err
 }

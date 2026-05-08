@@ -16,13 +16,15 @@ import (
 type UserHandler struct {
 	repo  repositories.IUserRepo
 	dRepo repositories.IDomainRepo
+	rRepo repositories.IRoleRepo
 	e     *casbin.Enforcer
 }
 
-func NewUserHandler(repo repositories.IUserRepo, dRepo repositories.IDomainRepo, e *casbin.Enforcer) *UserHandler {
+func NewUserHandler(repo repositories.IUserRepo, dRepo repositories.IDomainRepo, rRepo repositories.IRoleRepo, e *casbin.Enforcer) *UserHandler {
 	return &UserHandler{
 		repo:  repo,
 		dRepo: dRepo,
+		rRepo: rRepo,
 		e:     e,
 	}
 }
@@ -279,4 +281,55 @@ func (h *UserHandler) GetPermissions(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(permissions, "Success retrieving permissions"))
+}
+
+// @Summary		Assign roles to user
+// @Description	Assign roles to a user by ID
+// @Tags			users
+// @Security		ApiKeyAuth
+// @Accept			json
+// @Produce			json
+// @Param			X-App-Id		header		int			true	"App identifier"
+// @Param			X-Domain-Id	header		int			true	"Domain identifier"
+// @Param			id				path		string		true	"User ID"
+// @Param			request			body		[]uint		true	"Role IDs"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			400				{object}	common.JSONResponse
+// @Failure			500				{object}	common.JSONResponse
+// @Router			/v1/users/{id}/roles [patch]
+func (h *UserHandler) AssignRoles(c fiber.Ctx) error {
+	id := c.Params("id")
+	domainID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
+
+	var roleIDs []uint
+	if err := c.Bind().JSON(&roleIDs); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
+	}
+
+	user, err := h.repo.GetByID(id)
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
+	}
+
+	dom, err := h.dRepo.GetByID(domainID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id header"))
+	}
+
+	if _, err := h.e.RemoveFilteredGroupingPolicy(0, user.Username, "", dom.Name); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed removing policy"))
+	}
+
+	roles, err := h.rRepo.GetDistinctByIDs(roleIDs)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving roles"))
+	}
+
+	for _, role := range roles {
+		if _, err := h.e.AddGroupingPolicy(user.Username, role, dom.Name); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed adding policy"))
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(roles, "Success assigning roles"))
 }

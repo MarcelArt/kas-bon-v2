@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
-	"github.com/MarcelArt/kas-bon-v2/internal/enums"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/casbin/casbin/v3"
@@ -62,11 +61,7 @@ func (h *TokenHandler) Token(c fiber.Ctx) error {
 
 	res, act := common.ExtractPermissionResourceAndAction(payload.Permission)
 
-	if ok, _ := h.e.Enforce(user.Username, app.Name, dom.Name, enums.ResourceAll, enums.PermissionFull); ok {
-		return c.JSON(common.NewJSONResponse(true, "permitted"))
-	}
-
-	if ok, _ := h.e.Enforce(user.Username, app.Name, dom.Name, res, act); ok {
+	if ok := common.IsAuthorized(h.e, user.Username, app.Name, dom.Name, res, act); ok {
 		return c.JSON(common.NewJSONResponse(true, "permitted"))
 	}
 

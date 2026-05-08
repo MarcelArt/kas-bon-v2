@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/url"
+	"strconv"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
@@ -78,5 +79,5 @@ func (h *AccessControlHandler) Eval(c fiber.Ctx) error {
 	}
 
 	ok := common.IsAuthorized(h.e, req.Sub, req.App, req.Dom, req.Obj, req.Act)
-	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(ok, "permitted"))
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(ok, strconv.FormatBool(ok)))
 }

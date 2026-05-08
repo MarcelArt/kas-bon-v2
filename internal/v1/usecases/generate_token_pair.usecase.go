@@ -44,7 +44,7 @@ func (u *GenerateTokenPairUsecase) Execute() (res models.LoginResponse, err erro
 	user := u.user
 	c := u.c
 
-	permissions, err := u.e.GetPermissionsForUser(user.Username)
+	permissions, err := u.e.GetImplicitPermissionsForUser(user.Username)
 	if err != nil {
 		return res, fmt.Errorf("failed retrieving permissions: %w", err)
 	}

@@ -9,16 +9,21 @@ import (
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/usecases"
 	"github.com/alexedwards/argon2id"
+	"github.com/casbin/casbin/v3"
 	"github.com/gofiber/fiber/v3"
 )
 
 type UserHandler struct {
-	repo repositories.IUserRepo
+	repo  repositories.IUserRepo
+	dRepo repositories.IDomainRepo
+	e     *casbin.Enforcer
 }
 
-func NewUserHandler(repo repositories.IUserRepo) *UserHandler {
+func NewUserHandler(repo repositories.IUserRepo, dRepo repositories.IDomainRepo, e *casbin.Enforcer) *UserHandler {
 	return &UserHandler{
-		repo: repo,
+		repo:  repo,
+		dRepo: dRepo,
+		e:     e,
 	}
 }
 
@@ -210,4 +215,68 @@ func (h *UserHandler) Refresh(c fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(res, "Authenticated"))
+}
+
+// @Summary		Get roles for user
+// @Description	Retrieve the roles assigned to a user within a specific domain
+// @Tags			users
+// @Produce			json
+// @Param			id				path		string	true	"User ID"
+// @Param			X-App-Id		header		int	true	"App identifier"
+// @Param			X-Domain-Id		header		uint	true	"Domain ID"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			400				{object}	common.JSONResponse
+// @Failure			404				{object}	common.JSONResponse
+// @Security		ApiKeyAuth
+// @Router			/v1/users/{id}/roles [get]
+func (h *UserHandler) GetRoles(c fiber.Ctx) error {
+	id := c.Params("id")
+	domainID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
+
+	user, err := h.repo.GetByID(id)
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
+	}
+
+	domain, err := h.dRepo.GetByID(domainID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id"))
+	}
+
+	roles := h.e.GetRolesForUserInDomain(user.Username, domain.Name)
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(roles, "Roles found"))
+}
+
+// @Summary		Get role permissions
+// @Description	Retrieve implicit permissions for a user by ID
+// @Tags			users
+// @Security		ApiKeyAuth
+// @Produce			json
+// @Param			X-App-Id		header		int		true	"App identifier"
+// @Param			X-Domain-Id	header		int		true	"Domain identifier"
+// @Param			id				path		string	true	"Role ID"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			400				{object}	common.JSONResponse
+// @Failure			500				{object}	common.JSONResponse
+// @Router			/v1/users/{id}/permissions [get]
+func (h *UserHandler) GetPermissions(c fiber.Ctx) error {
+	id := c.Params("id")
+	domainID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
+
+	user, err := h.repo.GetByID(id)
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
+	}
+	dom, err := h.dRepo.GetByID(domainID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id header"))
+	}
+
+	permissions, err := h.e.GetImplicitPermissionsForUser(user.Username, dom.Name)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(permissions, "Success retrieving permissions"))
 }

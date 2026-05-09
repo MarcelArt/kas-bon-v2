@@ -1,40 +1,47 @@
 # Phase 5 — Permission Gating
 
-Frontend-wide permission system that controls menu visibility, page access, and action availability based on user permissions from the backend.
+Frontend-wide permission system that controls menu visibility, page access, and action availability based on user permissions from the backend. Integrates with Zustand auth store and TanStack Query.
 
-## 1. Permission Data Flow
+## Step 1: Permission Data Flow
 
 ```
-Login → auth context stores user
-  → fetch GET /v1/users/{userId}/permissions (with X-App-Id, X-Domain-Id)
+Login → Zustand store: user + tokens set
+  → GET /v1/users/{userId}/organizations (after org selection)
+  → Axios automatically attaches X-App-Id, X-Domain-Id
+  → fetch GET /v1/users/{userId}/permissions
   → parse permission tuples: [[sub, app, dom, res, act], ...]
   → extract "resource#action" strings → Set<string>
-  → store in auth context
+  → store in Zustand auth store (setPermissions)
 
 Every render:
-  hasPermission("users", "read") → check Set or isSuperUser
+  usePermission("users", "read") → reads from Zustand store → check Set or isSuperUser
 ```
 
-## 2. Permission Parsing Utility
+## Step 2: Permission Parsing Utility
 
 **File:** `src/lib/permissions.ts`
 
+Already created in Phase 1. Verify it contains:
+
 ```typescript
-interface PermissionTuple {
-  sub: string
-  app: string
-  dom: string
-  resource: string
-  action: string
+export function parsePermissionTuples(tuples: string[][]): Set<string> {
+  return new Set(tuples.map((t) => `${t[3]}#${t[4]}`))
 }
 
-function parsePermissionTuples(tuples: string[][]): PermissionTuple[]
-function buildPermissionSet(tuples: string[][]): Set<string>
-function isSuperUser(permissions: Set<string>): boolean
-function checkPermission(permissions: Set<string>, resource: string, action: string): boolean
+export function isSuperUser(permissions: Set<string>): boolean {
+  return permissions.has("all#fullAccess")
+}
 
-// Resource-action constants
-const RESOURCES = {
+export function checkPermission(
+  permissions: Set<string>,
+  resource: string,
+  action: string
+): boolean {
+  if (isSuperUser(permissions)) return true
+  return permissions.has(`${resource}#${action}`)
+}
+
+export const RESOURCES = {
   USERS: "users",
   DOMAINS: "domains",
   APPS: "apps",
@@ -43,7 +50,7 @@ const RESOURCES = {
   ALL: "all",
 } as const
 
-const ACTIONS = {
+export const ACTIONS = {
   READ: "read",
   CREATE: "create",
   UPDATE: "update",
@@ -52,7 +59,39 @@ const ACTIONS = {
 } as const
 ```
 
-## 3. Sidebar Menu Gating
+## Step 3: Permission Hooks
+
+**File:** `src/hooks/use-permission.ts`
+
+Already created in Phase 1. Uses Zustand store selectors:
+
+```typescript
+import { useAuthStore } from "@/lib/stores/auth-store"
+
+export function usePermission(resource: string, action: string): boolean {
+  const hasPermission = useAuthStore((s) => s.hasPermission)
+  return hasPermission(resource, action)
+}
+
+export function useCanCreate(resource: string): boolean {
+  return usePermission(resource, "create")
+}
+
+export function useCanEdit(resource: string): boolean {
+  return usePermission(resource, "update")
+}
+
+export function useCanDelete(resource: string): boolean {
+  return usePermission(resource, "delete")
+}
+
+export function useIsSuperUser(): boolean {
+  const permissions = useAuthStore((s) => s.permissions)
+  return permissions.has("all#fullAccess")
+}
+```
+
+## Step 4: Sidebar Menu Gating
 
 **File:** Update `src/components/layout/app-shell.tsx`
 
@@ -69,116 +108,98 @@ const navItems = [
 ]
 ```
 
-Rendering logic:
+Rendering logic — use `usePermission` hook:
 - If `resource` is null → always show (Dashboard)
-- If user is superUser (`all#fullAccess`) → always show
-- Otherwise → show only if `hasPermission(resource, action)`
+- Otherwise → show only if `usePermission(resource, action)` is true (superuser check is inside)
 
-## 4. Route-Level Permission Guard
+## Step 5: Route-Level Permission Guard
 
 **File:** Update `src/lib/auth-guard.ts`
 
-Add per-route permission checking. Each route declares its required permission via route context:
+Create a helper that generates `beforeLoad` for permission checking:
 
 ```typescript
-// In route definition (e.g., users/index.tsx):
-export const Route = createFileRoute("/_authenticated/users/")({
-  beforeLoad: ({ context }) => {
-    if (!context.auth.hasPermission("users", "read")) {
-      throw redirect({ to: "/dashboard" })
-    }
-  },
-  loader: async () => { ... },
-})
-```
+import { redirect } from "@tanstack/react-router"
+import { useAuthStore } from "@/lib/stores/auth-store"
 
-Alternative: create a helper that generates the `beforeLoad`:
-
-```typescript
-function requirePermission(resource: string, action: string) {
-  return ({ context }: { context: RouteContext }) => {
-    if (!context.auth.hasPermission(resource, action)) {
+export function requirePermission(resource: string, action: string) {
+  return () => {
+    const { hasPermission } = useAuthStore.getState()
+    if (!hasPermission(resource, action)) {
       throw redirect({ to: "/dashboard" })
     }
   }
 }
+```
 
-// Usage:
+Usage in route definitions:
+```typescript
+// e.g., users/index.tsx
 export const Route = createFileRoute("/_authenticated/users/")({
   beforeLoad: requirePermission("users", "read"),
+  // loader can use TanStack Query or server fn for SSR data
 })
 ```
 
-## 5. Action-Level Permission Gating
+## Step 6: Action-Level Permission Gating
 
-All CRUD action buttons already wrapped with `hasPermission` checks from Phases 2-4. Verify consistency:
+All CRUD action buttons already wrapped with permission hooks from Phases 2-4. Verify consistency:
 
-| Action | Permission | Button |
+| Action | Permission | Hook |
 |---|---|---|
-| Create user | `users#create` | "Create User" button on user list |
-| Edit user | `users#update` | "Edit" button on user row + detail |
-| Delete user | `users#delete` | "Delete" button on user row + detail |
-| Assign roles | `users#update` | "Assign Roles" button on user detail |
-| Create domain | `domains#create` | "Create Domain" button |
-| Edit domain | `domains#update` | "Edit" button |
-| Delete domain | `domains#delete` | "Delete" button |
-| Create app | `apps#create` | "Create App" button |
-| Edit app | `apps#update` | "Edit" button |
-| Delete app | `apps#delete` | "Delete" button |
-| Create role | `roles#create` | "Create Role" button |
-| Edit role | `roles#update` | "Edit" button |
-| Delete role | `roles#delete` | "Delete" button |
-| Assign permissions | `roles#update` | "Assign Permissions" button on role detail |
-| Create permission | `permissions#create` | "Create Permission" button |
-| Edit permission | `permissions#update` | "Edit" button |
-| Delete permission | `permissions#delete` | "Delete" button |
+| Create user | `users#create` | `useCanCreate("users")` |
+| Edit user | `users#update` | `useCanEdit("users")` |
+| Delete user | `users#delete` | `useCanDelete("users")` |
+| Assign roles | `users#update` | `useCanEdit("users")` |
+| Create domain | `domains#create` | `useCanCreate("domains")` |
+| Edit domain | `domains#update` | `useCanEdit("domains")` |
+| Delete domain | `domains#delete` | `useCanDelete("domains")` |
+| Create app | `apps#create` | `useCanCreate("apps")` |
+| Edit app | `apps#update` | `useCanEdit("apps")` |
+| Delete app | `apps#delete` | `useCanDelete("apps")` |
+| Create role | `roles#create` | `useCanCreate("roles")` |
+| Edit role | `roles#update` | `useCanEdit("roles")` |
+| Delete role | `roles#delete` | `useCanDelete("roles")` |
+| Assign permissions | `roles#update` | `useCanEdit("roles")` |
+| Create permission | `permissions#create` | `useCanCreate("permissions")` |
+| Edit permission | `permissions#update` | `useCanEdit("permissions")` |
+| Delete permission | `permissions#delete` | `useCanDelete("permissions")` |
 
-## 6. Permission Hook
-
-**File:** `src/hooks/use-permission.ts`
-
-Convenience hook for components:
-
-```typescript
-function usePermission(resource: string, action: string): boolean
-function useCanCreate(resource: string): boolean  // action = "create"
-function useCanEdit(resource: string): boolean    // action = "update"
-function useCanDelete(resource: string): boolean  // action = "delete"
-function useIsSuperUser(): boolean
-```
-
-These read from auth context and can be used in any component:
-
-```tsx
-const canCreate = useCanCreate("users")
-return canCreate ? <Button>Create User</Button> : null
-```
-
-## 7. Unauthorized Page
+## Step 7: Unauthorized Page
 
 **File:** `src/routes/_authenticated/unauthorized.tsx`
 
-Displayed when a user navigates to a page they don't have access to (fallback if redirect to dashboard isn't desired). Shows a message: "You don't have permission to view this page."
+Displayed when a user navigates to a page they don't have access to (fallback if redirect to dashboard isn't desired). Shows: "You don't have permission to view this page."
 
-## 8. Permission Context Refresh
+## Step 8: Permission Context Refresh
 
-When permissions change (e.g., after role/permission mutation), refresh the permission set:
+When permissions change (e.g., after role/permission mutation), refresh the permission set in Zustand:
 
-- After `assignUserRolesFn` → re-fetch user permissions
-- After `assignRolePermissionsFn` → re-fetch user permissions (if current user is affected)
-- Provide a `refreshPermissions()` function in auth context
+- After `useAssignUserRoles()` mutation success → re-fetch permissions via TanStack Query and update Zustand store
+- After `useAssignRolePermissions()` mutation success → re-fetch permissions (if current user is affected)
+- Add `refreshPermissions()` function that calls the API and updates Zustand:
 
-## 9. Files to Create/Modify
+```typescript
+// In a utility or hook
+async function refreshPermissions(userId: number) {
+  const tuples = await authApi.getPermissions(userId)
+  useAuthStore.getState().setPermissions(tuples)
+}
+```
+
+Call this in mutation `onSuccess` callbacks where role/permission assignments change.
+
+## Step 9: Files to Create/Modify
 
 | File | Action |
 |---|---|
-| `src/lib/permissions.ts` | Create: permission parsing + constants |
-| `src/hooks/use-permission.ts` | Create: permission hooks |
-| `src/components/layout/app-shell.tsx` | Modify: gate sidebar items by permission |
-| `src/lib/auth.tsx` | Modify: integrate permission parsing, add refreshPermissions |
-| `src/lib/auth-guard.ts` | Modify: add requirePermission helper |
+| `src/lib/permissions.ts` | Verify: permission parsing + constants (from Phase 1) |
+| `src/hooks/use-permission.ts` | Verify: permission hooks (from Phase 1) |
+| `src/components/layout/app-shell.tsx` | Modify: gate sidebar items by permission hooks |
+| `src/lib/auth-guard.ts` | Modify: add `requirePermission` helper |
 | `src/routes/_authenticated/unauthorized.tsx` | Create: unauthorized page |
-| All route files in `_authenticated/` | Modify: add beforeLoad permission guards |
+| All route files in `_authenticated/` | Modify: add `beforeLoad: requirePermission(...)` |
+| All mutation hooks with role/permission side effects | Modify: add permission refresh in `onSuccess` |
 
 ## Completion Criteria
 
@@ -186,6 +207,6 @@ When permissions change (e.g., after role/permission mutation), refresh the perm
 - [ ] Direct URL navigation to unauthorized pages redirects or shows unauthorized
 - [ ] All action buttons hidden when user lacks specific permission
 - [ ] SuperUser (`all#fullAccess`) sees everything
-- [ ] Permission hooks work in all components
-- [ ] Permissions refresh after role/permission mutations
+- [ ] Permission hooks (`usePermission`, `useCanCreate`, etc.) work in all components
+- [ ] Permissions refresh after role/permission mutations (Zustand store updated)
 - [ ] `bun run typecheck && bun run lint` passes

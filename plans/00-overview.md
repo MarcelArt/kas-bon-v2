@@ -31,11 +31,23 @@ This gates:
 
 ## Global Architecture Decisions
 
-- **Server functions**: Use `createServerFn` from TanStack Start for all API calls (keeps tokens server-side)
-- **Route loaders**: Fetch data in route loaders via server functions for SSR
-- **Auth state**: Access/refresh tokens stored in cookies (httpOnly preferred); user + permissions in context
-- **API client**: Shared fetch wrapper in `src/lib/api.ts` that attaches `Authorization`, `X-App-Id`, `X-Domain-Id` headers
+- **HTTP Client**: Axios — shared instance in `src/lib/api.ts` that attaches `Authorization`, `X-App-Id`, `X-Domain-Id` headers via interceptors. Intercepts 401 for token refresh. Do NOT use raw `fetch`.
+- **Global State**: Zustand — auth store (`src/lib/stores/auth-store.ts`) holding user, tokens, selected org/app context, and permissions. Do NOT use React Context for global state.
+- **Server State**: TanStack Query — all data fetching via `useQuery`, all mutations via `useMutation` with cache invalidation. Query key factories per resource in `src/lib/queries/`.
+- **Forms**: TanStack Form + Zod — all forms use `useForm` from `@tanstack/react-form` with `@tanstack/zod-form-adapter`. Zod schemas for validation. Do NOT use manual `useState` for form fields.
+- **Route loaders**: Use TanStack Router `loader` with `createServerFn` only for SSR-critical data (e.g., initial page load). For client-side data, use TanStack Query hooks.
+- **Auth tokens**: Access/refresh tokens stored in Zustand (persisted to localStorage/sessionStorage). Axios interceptors read from store.
 - **Path alias**: All imports via `@/`
 - **Component library**: shadcn/ui (radix-lyra) — add components via `bunx shadcn add <name>`
 - **Icons**: `@phosphor-icons/react` only
 - **Font**: JetBrains Mono Variable (already configured)
+
+## Post-Login Organization Selection Flow
+
+After login, the app MUST call `GET /v1/users/{userId}/organizations` before showing any authenticated content:
+
+1. **0 organizations** → show error page: "You don't have access to any organization"
+2. **1 organization** → auto-select it, set `domainId` and first app's `appId` in Zustand store, redirect to dashboard
+3. **2+ organizations** → redirect to `/select-organization` page, user picks an org
+
+The selected `domainId` → `X-Domain-Id` header, and `appId` → `X-App-Id` header for ALL subsequent API calls. These are set in the Axios request interceptor by reading from the Zustand auth store.

@@ -71,6 +71,11 @@ cd web && bun run typecheck && bun run lint
 - React 19 + TypeScript strict mode
 - TanStack Start (SSR framework) — use Start-specific APIs, not just Router
 - TanStack Router — file-based routing in `src/routes/`
+- TanStack Query — server state management (`useQuery`, `useMutation`, query key factories)
+- TanStack Form — form state management (`useForm` from `@tanstack/react-form`)
+- Zod — schema validation (form schemas with `@tanstack/zod-form-adapter`, API response schemas)
+- Zustand — global state management (auth store with user, tokens, org/app context, permissions)
+- Axios — HTTP client (shared instance with interceptors, never raw `fetch`)
 - shadcn/ui (radix-lyra style preset, Phosphor icons via `@phosphor-icons/react`)
 - Tailwind CSS v4
 - Vite 7
@@ -92,6 +97,165 @@ This project uses TanStack Start (full-stack SSR framework), NOT just TanStack R
 - **Type registration** — router type is registered via `declare module "@tanstack/react-router"`
 
 Before using any TanStack Start API (`createServerFn`, server middleware, `createAPIFileRoute`, etc.), fetch docs with find-docs/ctx7 first.
+
+## Required Libraries — Usage Rules
+
+### Axios (HTTP Client)
+
+All API calls MUST go through the shared Axios instance at `src/lib/api.ts`. NEVER use raw `fetch`.
+
+The Axios instance:
+- Sets `baseURL` to the backend API URL
+- Attaches `Authorization: Bearer <accessToken>` from Zustand auth store via request interceptor
+- Attaches `X-App-Id` and `X-Domain-Id` from Zustand auth store via request interceptor
+- Intercepts 401 responses to attempt token refresh via `POST /v1/users/refresh` with `X-Refresh-Token`
+- On refresh failure, clears auth store and redirects to `/login`
+
+Pattern for API calls:
+```typescript
+import { api } from "@/lib/api"
+import type { User, JSONResponse } from "@/lib/api.types"
+
+async function getUser(id: number): Promise<User> {
+  const res = await api.get<JSONResponse<User>>(`/v1/users/${id}`)
+  return res.data.items!
+}
+```
+
+### Zustand (Global State)
+
+Use Zustand for ALL global state. Do NOT use React Context for global state.
+
+**Auth Store** (`src/lib/stores/auth-store.ts`):
+```typescript
+interface AuthState {
+  user: User | null
+  accessToken: string | null
+  refreshToken: string | null
+  domainId: number | null          // selected org/domain (X-Domain-Id)
+  appId: number | null             // selected app (X-App-Id)
+  permissions: Set<string>         // parsed permission strings
+  isSuperUser: boolean
+  setUser: (user: User | null) => void
+  setTokens: (access: string, refresh: string) => void
+  setDomain: (domainId: number) => void
+  setApp: (appId: number) => void
+  setPermissions: (tuples: string[][]) => void
+  hasPermission: (resource: string, action: string) => boolean
+  logout: () => void
+}
+```
+
+The store is the single source of truth for auth state. Persist tokens to localStorage/sessionStorage based on "remember me".
+
+### TanStack Query (Server State)
+
+Use TanStack Query for ALL server data fetching. Do NOT call Axios directly in components — wrap in query hooks.
+
+**Query Key Factory Pattern** (`src/lib/queries/<resource>.ts`):
+```typescript
+export const userKeys = {
+  all: ["users"] as const,
+  lists: () => [...userKeys.all, "list"] as const,
+  list: (filters: object) => [...userKeys.lists(), filters] as const,
+  details: () => [...userKeys.all, "detail"] as const,
+  detail: (id: number) => [...userKeys.details(), id] as const,
+}
+```
+
+**Query Hooks** (`src/lib/queries/<resource>.ts`):
+```typescript
+export function useUsers(filters: object) {
+  return useQuery({
+    queryKey: userKeys.list(filters),
+    queryFn: () => userApi.list(filters),
+  })
+}
+
+export function useUser(id: number) {
+  return useQuery({
+    queryKey: userKeys.detail(id),
+    queryFn: () => userApi.get(id),
+    enabled: !!id,
+  })
+}
+```
+
+**Mutation Hooks** with cache invalidation:
+```typescript
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: userApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.all })
+    },
+  })
+}
+```
+
+Wrap the app in `QueryClientProvider` in the root route.
+
+### TanStack Form + Zod (Forms & Validation)
+
+ALL forms use TanStack Form with Zod validation. Do NOT use manual `useState` for form fields.
+
+**Pattern:**
+```typescript
+import { useForm } from "@tanstack/react-form"
+import { zodValidator } from "@tanstack/zod-form-adapter"
+import { z } from "zod"
+
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  isRemember: z.boolean().optional(),
+})
+
+function LoginForm() {
+  const form = useForm({
+    defaultValues: { username: "", password: "", isRemember: false },
+    onSubmit: async ({ value }) => { /* call mutation */ },
+    validatorAdapter: zodValidator(),
+    validators: { onChange: loginSchema },
+  })
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
+      <form.Field name="username">
+        {(field) => <input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />}
+      </form.Field>
+      {/* ... */}
+    </form>
+  )
+}
+```
+
+Define Zod schemas alongside the query/mutation hooks for each resource.
+
+### Post-Login Organization Selection Flow
+
+After successful login, the app MUST call `GET /v1/users/{userId}/organizations` before proceeding:
+1. If user has **0 organizations** → show error: "You don't have access to any organization"
+2. If user has **1 organization** → auto-select it, set `domainId` and `appId` in auth store, go to dashboard
+3. If user has **multiple organizations** → redirect to `/select-organization` page where user picks one
+
+The selected `domainId` becomes `X-Domain-Id` and the selected app's `appId` becomes `X-App-Id` for ALL subsequent API calls (set via Axios interceptor reading from auth store).
+
+This route (`/select-organization`) must be created as a step between login and dashboard.
+
+### API Response Handling
+
+All backend responses follow `JSONResponse<T>`:
+```typescript
+interface JSONResponse<T> {
+  items: T | null
+  isSuccess: boolean
+  message: string
+}
+```
+
+Extract `items` in API functions, throw on `isSuccess === false`. Use the `message` for toast notifications on mutations.
 
 ## Directory Structure
 

@@ -1,138 +1,268 @@
 # Phase 2 — User Management
 
-User list, detail, CRUD, and role assignment.
+User list, detail, CRUD, and role assignment. Uses Axios API functions, TanStack Query hooks, TanStack Form + Zod for forms.
 
-## 1. Server Functions
+## Step 1: API Functions
 
-**File:** `src/lib/users.server.ts`
+**File:** `src/lib/api/users.ts`
 
-Using `createServerFn`:
+Axios wrappers for user endpoints:
 
-- `listUsersFn(opts: { page, size, sort, filters })` — `GET /v1/users`
-- `getUserFn(id)` — `GET /v1/users/{id}`
-- `createUserFn(body: UserInput)` — `POST /v1/users`
-- `updateUserFn(id, body: Partial<User>)` — `PUT /v1/users/{id}`
-- `deleteUserFn(id)` — `DELETE /v1/users/{id}`
-- `getUserRolesFn(id)` — `GET /v1/users/{id}/roles`
-- `assignUserRolesFn(id, roleIds: number[])` — `PATCH /v1/users/{id}/roles`
-- `getUserPermissionsFn(id)` — `GET /v1/users/{id}/permissions`
+```typescript
+import { api, unwrap } from "@/lib/api"
+import type { User, JSONResponse, PaginatedResponse } from "@/lib/api.types"
 
-All functions attach `X-App-Id` and `X-Domain-Id` headers from context.
+export const userApi = {
+  list: (params: { page?: number; size?: number; sort?: string; filters?: string }) =>
+    api.get<JSONResponse<PaginatedResponse<User>>>("/v1/users", { params }).then(unwrap),
 
-## 2. User List Page
+  get: (id: number) =>
+    api.get<JSONResponse<User>>(`/v1/users/${id}`).then(unwrap),
+
+  create: (body: { username: string; email: string; password: string }) =>
+    api.post<JSONResponse<number>>("/v1/users", body).then(unwrap),
+
+  update: (id: number, body: { username: string; email: string }) =>
+    api.put<JSONResponse<null>>(`/v1/users/${id}`, body).then(unwrap),
+
+  delete: (id: number) =>
+    api.delete<JSONResponse<null>>(`/v1/users/${id}`).then(unwrap),
+
+  getRoles: (id: number) =>
+    api.get<JSONResponse<string[]>>(`/v1/users/${id}/roles`).then(unwrap),
+
+  assignRoles: (id: number, roleIds: number[]) =>
+    api.patch<JSONResponse<string[]>>(`/v1/users/${id}/roles`, roleIds).then(unwrap),
+
+  getPermissions: (id: number) =>
+    api.get<JSONResponse<string[][]>>(`/v1/users/${id}/permissions`).then(unwrap),
+}
+```
+
+## Step 2: TanStack Query Hooks & Query Keys
+
+**File:** `src/lib/queries/users.ts`
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { userApi } from "@/lib/api/users"
+
+export const userKeys = {
+  all: ["users"] as const,
+  lists: () => [...userKeys.all, "list"] as const,
+  list: (filters: object) => [...userKeys.lists(), filters] as const,
+  details: () => [...userKeys.all, "detail"] as const,
+  detail: (id: number) => [...userKeys.details(), id] as const,
+  roles: (id: number) => [...userKeys.detail(id), "roles"] as const,
+  permissions: (id: number) => [...userKeys.detail(id), "permissions"] as const,
+}
+
+export function useUsers(filters: object) {
+  return useQuery({
+    queryKey: userKeys.list(filters),
+    queryFn: () => userApi.list(filters),
+  })
+}
+
+export function useUser(id: number) {
+  return useQuery({
+    queryKey: userKeys.detail(id),
+    queryFn: () => userApi.get(id),
+    enabled: !!id,
+  })
+}
+
+export function useUserRoles(id: number) {
+  return useQuery({
+    queryKey: userKeys.roles(id),
+    queryFn: () => userApi.getRoles(id),
+    enabled: !!id,
+  })
+}
+
+export function useUserPermissions(id: number) {
+  return useQuery({
+    queryKey: userKeys.permissions(id),
+    queryFn: () => userApi.getPermissions(id),
+    enabled: !!id,
+  })
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: userApi.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  })
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) =>
+      userApi.update(id, body),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: userKeys.detail(id) })
+      qc.invalidateQueries({ queryKey: userKeys.lists() })
+    },
+  })
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: userApi.delete,
+    onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+  })
+}
+
+export function useAssignUserRoles() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, roleIds }: { userId: number; roleIds: number[] }) =>
+      userApi.assignRoles(userId, roleIds),
+    onSuccess: (_, { userId }) => {
+      qc.invalidateQueries({ queryKey: userKeys.roles(userId) })
+      qc.invalidateQueries({ queryKey: userKeys.permissions(userId) })
+    },
+  })
+}
+```
+
+## Step 3: Zod Schemas
+
+**File:** `src/lib/schemas/user.ts`
+
+```typescript
+import { z } from "zod"
+
+export const createUserSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+})
+
+export const editUserSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email"),
+})
+
+export type CreateUserFormData = z.infer<typeof createUserSchema>
+export type EditUserFormData = z.infer<typeof editUserSchema>
+```
+
+## Step 4: User List Page
 
 **File:** `src/routes/_authenticated/users/index.tsx`
 
-- Route loader fetches paginated user list via `listUsersFn`
+- Use `useUsers(filters)` TanStack Query hook for data
 - Table with columns: Username, Email, Created At, Actions
 - Actions column: View (link to detail), Edit, Delete — gated by permissions:
-  - Edit button: `users#update`
-  - Delete button: `users#delete`
-- "Create User" button at top — gated by `users#create`
+  - Edit button: `useCanEdit("users")`
+  - Delete button: `useCanDelete("users")`
+- "Create User" button at top — gated by `useCanCreate("users")`
 - Pagination controls at bottom
 - Search/filter input (maps to `filters` query param)
 
 **shadcn components needed:** `table`, `dialog`, `dropdown-menu`, `pagination`
 
-## 3. User Detail Page
+## Step 5: User Detail Page
 
 **File:** `src/routes/_authenticated/users/$userId.tsx`
 
-Route loader fetches user via `getUserFn`.
-
-Two sections:
+Use `useUser(id)`, `useUserRoles(id)`, `useUserPermissions(id)` TanStack Query hooks.
 
 ### Profile Section
 - Display: username, email, created/updated timestamps
-- Edit form (inline or modal) — gated by `users#update`
-- Delete button with confirmation — gated by `users#delete`
+- Edit form (inline or modal using TanStack Form + `editUserSchema`) — gated by `useCanEdit("users")`
+- Delete button with confirmation — gated by `useCanDelete("users")`
 
 ### Roles Section
-- List of assigned roles (from `getUserRolesFn`)
-- "Assign Roles" button opens a dialog — gated by `users#update`
-- Dialog shows all available roles (from `listRolesFn`) as checkboxes
-- On submit, calls `assignUserRolesFn`
+- List of assigned roles (from `useUserRoles`)
+- "Assign Roles" button opens a dialog — gated by `useCanEdit("users")`
+- Dialog shows all available roles as checkboxes
+- On submit, calls `useAssignUserRoles()` mutation
 
 ### Permissions Section (read-only)
-- List of effective permissions (from `getUserPermissionsFn`)
+- List of effective permissions (from `useUserPermissions`)
 - Displayed as tags/badges: `resource#action`
 
 **shadcn components needed:** `badge`, `tabs`
 
-## 4. Create User Dialog
+## Step 6: Create User Dialog
 
 **File:** `src/components/users/create-user-dialog.tsx`
 
-- Modal form with fields: username, email, password
-- Calls `createUserFn`
-- On success: toast notification, refresh user list
-- On error: show field-level errors
+- Modal form using TanStack Form with `zodValidator` and `createUserSchema`
+- Fields: username, email, password
+- Calls `useCreateUser()` mutation
+- On success: `sonner` toast, query cache auto-invalidates
+- On error: display field-level errors from Zod
 
-## 5. Edit User Dialog
+## Step 7: Edit User Dialog
 
 **File:** `src/components/users/edit-user-dialog.tsx`
 
-- Modal form pre-filled with current user data
-- Fields: username, email (password change is separate or omitted)
-- Calls `updateUserFn`
-- On success: toast, refresh data
+- Modal form using TanStack Form with `zodValidator` and `editUserSchema`
+- Pre-filled with current user data via `defaultValues`
+- Calls `useUpdateUser()` mutation
+- On success: toast, query cache auto-invalidates
 
-## 6. Delete Confirmation Dialog
+## Step 8: Delete Confirmation Dialog
 
 **File:** `src/components/users/delete-user-dialog.tsx`
 
 - Reusable confirmation dialog
 - Shows "Are you sure you want to delete user X?"
-- Calls `deleteUserFn`
+- Calls `useDeleteUser()` mutation
 - On success: toast, navigate to user list
 
-## 7. Role Assignment Dialog
+## Step 9: Role Assignment Dialog
 
 **File:** `src/components/users/assign-roles-dialog.tsx`
 
-- Fetches all roles (filtered by current domain) via `listRolesFn`
+- Fetches all roles (filtered by current domain) via `useRoles()` hook from Phase 4
 - Displays roles as a checkbox list, pre-checking currently assigned roles
-- On submit, calls `assignUserRolesFn` with selected role IDs
-- On success: toast, refresh roles section
+- On submit, calls `useAssignUserRoles()` mutation
+- On success: toast, query cache auto-invalidates
 
-## 8. Permission Gating Pattern
+## Step 10: Permission Gating Pattern
 
-Each page/action checks permissions from auth context:
+Each page/action uses permission hooks from `src/hooks/use-permission.ts`:
 
 ```typescript
-const { hasPermission } = useAuth()
-
-// In JSX:
-{hasPermission("users", "create") && <Button>Create User</Button>}
-{hasPermission("users", "update") && <Button>Edit</Button>}
-{hasPermission("users", "delete") && <Button>Delete</Button>}
+const canCreate = useCanCreate("users")
+const canEdit = useCanEdit("users")
+const canDelete = useCanDelete("users")
 ```
 
-## 9. shadcn Components to Install
+## Step 11: shadcn Components to Install
 
 ```bash
 cd web
 bunx shadcn add table dialog dropdown-menu badge tabs alert-dialog
 ```
 
-## 10. Files to Create
+## Step 12: Files to Create
 
 | File | Action |
 |---|---|
-| `src/lib/users.server.ts` | Create: user server functions |
+| `src/lib/api/users.ts` | Create: user Axios API functions |
+| `src/lib/queries/users.ts` | Create: user TanStack Query hooks + query keys |
+| `src/lib/schemas/user.ts` | Create: user Zod schemas |
 | `src/routes/_authenticated/users/index.tsx` | Create: user list page |
 | `src/routes/_authenticated/users/$userId.tsx` | Create: user detail page |
-| `src/components/users/create-user-dialog.tsx` | Create: create user dialog |
-| `src/components/users/edit-user-dialog.tsx` | Create: edit user dialog |
+| `src/components/users/create-user-dialog.tsx` | Create: create user dialog (TanStack Form) |
+| `src/components/users/edit-user-dialog.tsx` | Create: edit user dialog (TanStack Form) |
 | `src/components/users/delete-user-dialog.tsx` | Create: delete confirmation |
 | `src/components/users/assign-roles-dialog.tsx` | Create: role assignment dialog |
 
 ## Completion Criteria
 
-- [ ] User list loads with pagination
-- [ ] Create user dialog works
-- [ ] Edit user dialog works
-- [ ] Delete user with confirmation works
+- [ ] User list loads with pagination via TanStack Query
+- [ ] Create user dialog works with TanStack Form + Zod validation
+- [ ] Edit user dialog works with TanStack Form + Zod validation
+- [ ] Delete with confirmation works (mutation + cache invalidation)
 - [ ] Role assignment dialog shows roles and saves correctly
 - [ ] User permissions displayed as badges
 - [ ] Create/Edit/Delete buttons hidden when user lacks permission

@@ -145,6 +145,25 @@ A `@frontend` subagent is configured in `.opencode/agents/frontend.md`. Use `@fr
 
 Run before finishing frontend work: `cd web && bun run typecheck && bun run lint`
 
+### Frontend Libraries
+
+These libraries MUST be used as described. Verify with find-docs/ctx7 before using any API:
+
+- **Axios** — HTTP client. All API calls go through a shared Axios instance (`src/lib/api.ts`) that attaches `Authorization`, `X-App-Id`, `X-Domain-Id` headers and intercepts 401s for token refresh. Do NOT use raw `fetch`.
+- **Zustand** — Global state management. Used for auth store (`useAuthStore`) holding user, tokens, selected org/app context, permissions. Do NOT use React Context for global state.
+- **TanStack Query** — Server state management. All data fetching (lists, detail views) uses `useQuery`. All mutations (create, update, delete) use `useMutation` with cache invalidation. Define query keys factory per resource in `src/lib/queries/`.
+- **TanStack Form** — Form state management. All forms (login, register, CRUD dialogs) use `useForm` from `@tanstack/react-form`. Do NOT use manual `useState` for form fields.
+- **Zod** — Schema validation. All form validation schemas defined with Zod. Used with TanStack Form via `@tanstack/zod-form-adapter`. API response types validated with Zod schemas where needed.
+
+### Post-Login Organization Selection Flow
+
+After login, the app MUST call `GET /v1/users/{id}/organizations` to get the user's organizations:
+1. If user has **0 organizations** → show error or redirect to a "no access" page
+2. If user has **1 organization** → auto-select it, set `X-Domain-Id` in Axios defaults, proceed to dashboard
+3. If user has **multiple organizations** → show organization picker page/route before dashboard
+
+The selected organization's ID becomes `X-Domain-Id` and a default app's ID becomes `X-App-Id` for all subsequent API calls. This selection is stored in the Zustand auth store.
+
 ## API Reference
 
 A full API reference document is at `.opencode/API.md` — generated from `docs/swagger.json`. It covers all endpoints, request/response schemas, auth requirements, pagination, and error codes. Consult it when building API clients or modifying endpoints.

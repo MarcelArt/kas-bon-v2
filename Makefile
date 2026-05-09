@@ -12,3 +12,5 @@ migrate:
 
 migrate-force:
 	@go run main.go migrate --drop
+
+# --preset b2p8PagwS

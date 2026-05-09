@@ -18,6 +18,7 @@ func SetupUserRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, e *ca
 	users.Get("/:id", middlewares.Authn(), authz.HasPermission("users#read"), h.GetByID)
 	users.Get("/:id/roles", middlewares.Authn(), authz.HasPermission("users#read"), h.GetRoles)
 	users.Get("/:id/permissions", middlewares.Authn(), authz.HasPermission("users#read"), h.GetPermissions)
+	users.Get("/:id/organizations", middlewares.Authn(), h.GetOrganizations)
 
 	users.Post("/", h.Create)
 	users.Post("/login", h.Login)

@@ -193,6 +193,16 @@ Auth + `users#update`. Headers: `X-App-Id`, `X-Domain-Id`.
 
 **Response:** `200` — `{ "items": string[], "isSuccess": true }` (role names)
 
+### Get User Organizations
+
+```
+GET /v1/users/{id}/organizations
+```
+
+Auth required. Path param: user ID.
+
+**Response:** `200` — `{ "items": Domain[], "isSuccess": true }` (list of domains/organizations the user belongs to)
+
 ### Get User Permissions
 
 ```

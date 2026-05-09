@@ -333,3 +333,32 @@ func (h *UserHandler) AssignRoles(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(roles, "Success assigning roles"))
 }
+
+// @Summary		Get user organizations
+// @Description	Retrieve organizations/domains for a user by ID
+// @Tags			users
+// @Security		ApiKeyAuth
+// @Produce			json
+// @Param			id				path		string	true	"User ID"
+// @Success			200				{object}	common.JSONResponse
+// @Failure			500				{object}	common.JSONResponse
+// @Router			/v1/users/{id}/organizations [get]
+func (h *UserHandler) GetOrganizations(c fiber.Ctx) error {
+	id := c.Params("id")
+	user, err := h.repo.GetByID(id)
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
+	}
+
+	doms, err := h.e.GetDomainsForUser(user.Username)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving domains"))
+	}
+
+	domains, err := h.dRepo.GetOrganizationsByNames(doms)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving domains"))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(domains, "Success retrieving domains"))
+}

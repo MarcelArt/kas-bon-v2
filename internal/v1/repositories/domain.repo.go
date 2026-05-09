@@ -13,6 +13,7 @@ type IDomainRepo interface {
 	Update(id any, domain models.Domain) error
 	Delete(id any) error
 	GetByID(id any) (models.Domain, error)
+	GetOrganizationsByNames(name []string) ([]models.Domain, error)
 }
 
 type DomainRepo struct {
@@ -56,4 +57,10 @@ func (r *DomainRepo) GetByID(id any) (models.Domain, error) {
 	var domain models.Domain
 	err := r.db.Where("id = ?", id).First(&domain).Error
 	return domain, err
+}
+
+func (r *DomainRepo) GetOrganizationsByNames(name []string) ([]models.Domain, error) {
+	var domains []models.Domain
+	err := r.db.Where("name in ? and is_organization = true", name).Find(&domains).Error
+	return domains, err
 }

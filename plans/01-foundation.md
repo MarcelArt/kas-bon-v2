@@ -1,14 +1,6 @@
 # Phase 1 — Foundation
 
-Authentication, app shell, dark mode, shared API layer, data fetching, and form handling.
-
-## 0. Install Dependencies
-
-```bash
-cd web
-bun add @tanstack/react-query @tanstack/react-form @tanstack/zod-form-adapter zod
-bunx shadcn add sidebar separator tooltip card input label checkbox sonner
-```
+Authentication, app shell, dark mode, and the shared API layer.
 
 ## 1. Dark Mode Default
 
@@ -47,22 +39,7 @@ TypeScript types mirroring all backend models:
 - `JSONResponse<T>`, `PaginatedResponse<T>`
 - `AccessControlEval`, `TokenEndpointRequest`
 
-**File:** `src/lib/api.schemas.ts`
-
-Zod schemas for all API types (used by both TanStack Form validation and API response parsing):
-- `userInputSchema`, `loginInputSchema`, `registerInputSchema`
-- `roleInputSchema`, `permissionInputSchema`, `domainInputSchema`, `appInputSchema`
-- `loginResponseSchema`
-
-## 3. TanStack Query Setup
-
-**File:** `src/lib/query-client.tsx`
-
-- Create a `QueryClient` instance with sensible defaults (staleTime, retry)
-- Wrap the app in `QueryClientProvider` (in `__root.tsx` or a dedicated provider component)
-- The project already has `@tanstack/react-router-ssr-query` installed — use it to integrate Query with TanStack Router for SSR hydration
-
-## 4. Auth Server Functions
+## 3. Auth Server Functions
 
 **File:** `src/lib/auth.server.ts`
 
@@ -75,20 +52,7 @@ Using `createServerFn` from TanStack Start:
 - `getCurrentUserFn()` — reads user from cookie/session (or re-validates token)
 - `getUserPermissionsFn(userId, appId, domainId)` — calls `GET /v1/users/{id}/permissions`, returns permission tuples
 
-## 5. Auth Hooks (TanStack Query)
-
-**File:** `src/lib/auth.query.ts`
-
-TanStack Query hooks for auth state:
-
-- `useCurrentUser()` — `useQuery` that calls `getCurrentUserFn`, key: `["auth", "me"]`
-- `useUserPermissions(userId)` — `useQuery` that calls `getUserPermissionsFn`, key: `["auth", "permissions", userId]`
-- `useLoginMutation()` — `useMutation` wrapping `loginFn`, on success: set cookies + invalidate auth queries + redirect
-- `useRegisterMutation()` — `useMutation` wrapping `registerFn`, on success: redirect to login
-- `useLogoutMutation()` — `useMutation` wrapping `logoutFn`, on success: clear queries + redirect
-- `useRefreshMutation()` — `useMutation` wrapping `refreshFn` (used internally for 401 handling)
-
-## 6. Auth Context & State
+## 4. Auth Context & State
 
 **File:** `src/lib/auth.tsx`
 
@@ -97,9 +61,10 @@ React context/provider providing:
 - `permissions: Set<string>` — parsed from permission tuples
 - `isSuperUser: boolean` — true if permissions has `"all#fullAccess"`
 - `hasPermission(resource, action): boolean` — checks permission set
+- `login(username, password, isRemember)`
+- `register(username, email, password)`
+- `logout()`
 - `isLoading: boolean`
-
-This context reads from TanStack Query's cache (useCurrentUser, useUserPermissions) and derives the permission set.
 
 Permission check logic:
 ```
@@ -108,11 +73,11 @@ hasPermission(resource, action):
   return permissions.has(`${resource}#${action}`)
 ```
 
-## 7. Route Structure
+## 5. Route Structure
 
 ```
 src/routes/
-  __root.tsx          # Shell with dark class, QueryClientProvider
+  __root.tsx          # Shell with dark class, sidebar layout
   _auth.tsx           # Layout for unauthenticated pages (no sidebar)
   _auth/
     login.tsx         # /login
@@ -139,7 +104,7 @@ src/routes/
 
 Use TanStack Router layout routes (`_auth` and `_authenticated`) for shared layout wrappers.
 
-## 8. App Shell Layout
+## 6. App Shell Layout
 
 **File:** `src/components/layout/app-shell.tsx`
 
@@ -150,7 +115,7 @@ Structure for authenticated pages:
     <SidebarHeader>  # App name / logo
     <SidebarContent>
       <SidebarGroup> # Navigation items (gated by permissions)
-        <SidebarItem to="/dashboard" icon={House} />
+        <SidebarItem to="/dashboard" icon={House} permission="dashboard#read" />
         <SidebarItem to="/users" icon={Users} permission="users#read" />
         <SidebarItem to="/domains" icon={Folders} permission="domains#read" />
         <SidebarItem to="/apps" icon={AppWindow} permission="apps#read" />
@@ -164,26 +129,28 @@ Structure for authenticated pages:
 </AppShell>
 ```
 
-## 9. Auth Pages (TanStack Form + Zod)
+**shadcn components needed:** `sidebar`, `separator`, `tooltip`
+
+## 7. Auth Pages
 
 ### Login Page — `src/routes/_auth/login.tsx`
 
-- Use `useForm` from `@tanstack/react-form` with `@tanstack/zod-form-adapter`
-- Zod schema `loginInputSchema` validates: username (required), password (required), isRemember (boolean)
-- On valid submit, call `useLoginMutation().mutate(body)`
+- Form with username, password, "Remember me" checkbox
+- Calls `login()` from auth context
 - On success: redirect to `/dashboard`
-- On error: show server error via sonner toast
+- On error: show error message
 - Link to register page
 
 ### Register Page — `src/routes/_auth/register.tsx`
 
-- Use `useForm` from `@tanstack/react-form` with `@tanstack/zod-form-adapter`
-- Zod schema `registerInputSchema` validates: username (required, min 3), email (required, email format), password (required, min 6), confirmPassword (must match password)
-- On valid submit, call `useRegisterMutation().mutate(body)` (omit confirmPassword before sending)
-- On success: redirect to `/login` with success toast
-- On error: show validation / server errors
+- Form with username, email, password, confirm password
+- Calls `register()` from auth context
+- On success: redirect to `/login` with success message
+- On error: show validation errors
 
-## 10. Route Guards
+**shadcn components needed:** `card`, `input`, `label`, `checkbox`
+
+## 8. Route Guards
 
 **File:** `src/lib/auth-guard.ts`
 
@@ -204,22 +171,28 @@ export const Route = createFileRoute("/_authenticated")({
 })
 ```
 
-## 11. Files to Create/Modify
+## 9. shadcn Components to Install
+
+```bash
+cd web
+bunx shadcn add sidebar separator tooltip card input label checkbox sonner
+```
+
+`sonner` for toast notifications (success/error feedback on mutations).
+
+## 10. Files to Create/Modify
 
 | File | Action |
 |---|---|
-| `src/routes/__root.tsx` | Modify: add `className="dark"` to `<html>`, update title, wrap in QueryClientProvider |
+| `src/routes/__root.tsx` | Modify: add `className="dark"` to `<html>`, update title |
 | `src/lib/api.ts` | Create: API client with auth headers |
 | `src/lib/api.types.ts` | Create: TypeScript types for all backend models |
-| `src/lib/api.schemas.ts` | Create: Zod schemas for all API types |
-| `src/lib/query-client.tsx` | Create: QueryClient instance + provider |
 | `src/lib/auth.server.ts` | Create: server functions for auth API calls |
-| `src/lib/auth.query.ts` | Create: TanStack Query hooks for auth |
 | `src/lib/auth.tsx` | Create: auth context, provider, permission helpers |
 | `src/lib/auth-guard.ts` | Create: route guard utilities |
 | `src/routes/_auth.tsx` | Create: unauthenticated layout |
-| `src/routes/_auth/login.tsx` | Create: login page (TanStack Form + Zod) |
-| `src/routes/_auth/register.tsx` | Create: register page (TanStack Form + Zod) |
+| `src/routes/_auth/login.tsx` | Create: login page |
+| `src/routes/_auth/register.tsx` | Create: register page |
 | `src/routes/_authenticated.tsx` | Create: authenticated layout with guard |
 | `src/routes/_authenticated/dashboard.tsx` | Create: dashboard/landing page |
 | `src/components/layout/app-shell.tsx` | Create: sidebar + main layout |
@@ -227,9 +200,7 @@ export const Route = createFileRoute("/_authenticated")({
 ## Completion Criteria
 
 - [ ] `bun run typecheck && bun run lint` passes
-- [ ] Login and register forms validate with Zod via TanStack Form
 - [ ] Login and register forms work end-to-end against backend
-- [ ] TanStack Query manages auth state (current user, permissions)
 - [ ] Dark mode is active by default
 - [ ] Sidebar renders with navigation items
 - [ ] Unauthenticated users are redirected to /login

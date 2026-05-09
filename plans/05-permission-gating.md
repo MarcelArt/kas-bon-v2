@@ -1,15 +1,15 @@
 # Phase 5 — Permission Gating
 
-Frontend-wide permission system that controls menu visibility, page access, and action availability based on user permissions from the backend. Permissions are fetched via TanStack Query and stored in auth context.
+Frontend-wide permission system that controls menu visibility, page access, and action availability based on user permissions from the backend.
 
 ## 1. Permission Data Flow
 
 ```
-Login → TanStack Query caches user via useCurrentUser
-  → useUserPermissions(userId) fetches GET /v1/users/{userId}/permissions
+Login → auth context stores user
+  → fetch GET /v1/users/{userId}/permissions (with X-App-Id, X-Domain-Id)
   → parse permission tuples: [[sub, app, dom, res, act], ...]
   → extract "resource#action" strings → Set<string>
-  → store in auth context derived from Query cache
+  → store in auth context
 
 Every render:
   hasPermission("users", "read") → check Set or isSuperUser
@@ -164,9 +164,9 @@ Displayed when a user navigates to a page they don't have access to (fallback if
 
 When permissions change (e.g., after role/permission mutation), refresh the permission set:
 
-- After `useAssignUserRolesMutation` success → invalidate `["auth", "permissions", userId]` query key
-- After `useAssignRolePermissionsMutation` success → invalidate `["auth", "permissions", userId]` query key (if current user is affected)
-- TanStack Query's `queryClient.invalidateQueries()` handles the refresh automatically
+- After `assignUserRolesFn` → re-fetch user permissions
+- After `assignRolePermissionsFn` → re-fetch user permissions (if current user is affected)
+- Provide a `refreshPermissions()` function in auth context
 
 ## 9. Files to Create/Modify
 

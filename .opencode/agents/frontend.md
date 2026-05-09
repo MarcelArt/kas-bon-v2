@@ -71,16 +71,11 @@ cd web && bun run typecheck && bun run lint
 - React 19 + TypeScript strict mode
 - TanStack Start (SSR framework) — use Start-specific APIs, not just Router
 - TanStack Router — file-based routing in `src/routes/`
-- TanStack Query — data fetching, caching, mutations via `@tanstack/react-query`
-- TanStack Form — form state management via `@tanstack/react-form`
-- Zod — schema validation for forms and API responses via `zod`
 - shadcn/ui (radix-lyra style preset, Phosphor icons via `@phosphor-icons/react`)
 - Tailwind CSS v4
 - Vite 7
 - Vitest + Testing Library for tests
 - Package manager: bun
-
-Before using TanStack Query hooks (`useQuery`, `useMutation`, `queryClient`), TanStack Form APIs (`useForm`, validators), or Zod schemas, fetch docs with find-docs/ctx7 first.
 
 ## TanStack Start Specifics
 

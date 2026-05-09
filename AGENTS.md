@@ -168,6 +168,8 @@ The selected organization's ID becomes `X-Domain-Id` and a default app's ID beco
 
 A full API reference document is at `.opencode/API.md` — generated from `docs/swagger.json`. It covers all endpoints, request/response schemas, auth requirements, pagination, and error codes. Consult it when building API clients or modifying endpoints.
 
+**JSON field naming:** All DB models embed `gorm.Model` (no `json` tags), so Go serializes as PascalCase: `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`. Other fields have explicit lowercase `json` tags (e.g., `username`, `domainId`). TypeScript types must match: `ID` not `id`, `CreatedAt` not `createdAt`.
+
 ## General Guidelines
 
 - Run `make swag` after modifying Swagger annotations in handler files.

@@ -40,12 +40,12 @@ interface PaginatedResponse<T> {
 }
 
 interface User {
-  id: number
+  ID: number
   username: string
   email: string
-  createdAt: string
-  updatedAt: string
-  deletedAt: string | null
+  CreatedAt: string
+  UpdatedAt: string
+  DeletedAt: string | null
 }
 
 interface LoginInput {
@@ -61,42 +61,42 @@ interface LoginResponse {
 }
 
 interface Domain {
-  id: number
+  ID: number
   name: string
   description: string
   isOrganization: boolean
   parentId: number | null
   parent: Domain | null
-  createdAt: string
-  updatedAt: string
+  CreatedAt: string
+  UpdatedAt: string
 }
 
 interface App {
-  id: number
+  ID: number
   name: string
   description: string
-  createdAt: string
-  updatedAt: string
+  CreatedAt: string
+  UpdatedAt: string
 }
 
 interface Role {
-  id: number
+  ID: number
   name: string
   description: string
   domainId: number
   domain: Domain | null
-  createdAt: string
-  updatedAt: string
+  CreatedAt: string
+  UpdatedAt: string
 }
 
 interface Permission {
-  id: number
+  ID: number
   name: string
   description: string
   appId: number
   app: App | null
-  createdAt: string
-  updatedAt: string
+  CreatedAt: string
+  UpdatedAt: string
 }
 ```
 
@@ -301,13 +301,13 @@ export function useLogin() {
       setUser(data.user)
       setTokens(data.accessToken, data.refreshToken)
 
-      const orgs = await authApi.getOrganizations(data.user.id)
+      const orgs = await authApi.getOrganizations(data.user.ID)
       setOrganizations(orgs)
 
       if (orgs.length === 0) {
         navigate({ to: "/no-access" })
       } else if (orgs.length === 1) {
-        setDomain(orgs[0].id)
+        setDomain(orgs[0].ID)
         // TODO: fetch default app for this org, then setApp(appId)
         navigate({ to: "/dashboard" })
       } else {

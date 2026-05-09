@@ -46,6 +46,8 @@ You MUST use these skills before writing code:
 
 A full API reference is at `.opencode/API.md` — generated from `docs/swagger.json`. It covers all endpoints, request/response schemas, auth requirements (JWT Bearer, X-App-Id, X-Domain-Id headers), pagination, and error codes. Consult it when building API clients, making fetch calls, or defining server functions.
 
+**Important — JSON field naming convention:** All DB models embed `gorm.Model`, which has NO `json` tags. Go serializes these as PascalCase: `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`. All other fields have explicit lowercase `json` tags (e.g., `username`, `email`, `domainId`, `parentId`). When defining TypeScript types, use `ID` (not `id`), `CreatedAt` (not `createdAt`), etc. for gorm.Model fields.
+
 ## Commands
 
 All commands must use `bun` (never npm, yarn, or pnpm). Run from the `web/` directory:

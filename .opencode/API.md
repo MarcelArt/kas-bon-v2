@@ -14,6 +14,8 @@ All responses are wrapped in `JSONResponse`:
 
 On error, `items` is `null`, `isSuccess` is `false`, and `message` includes the error detail.
 
+**Note on field naming:** All DB models embed `gorm.Model`, which serializes fields as PascalCase: `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`. These fields have NO explicit `json` tags in Go, so they use Go's default JSON serialization (exported field name as-is). All other fields (e.g., `username`, `email`, `domainId`, `parentId`) have explicit lowercase `json` tags.
+
 ## Authentication
 
 | Header | Description | Required |
@@ -91,7 +93,7 @@ No auth required.
 {
   "accessToken": "string",
   "refreshToken": "string",
-  "user": { "id": 1, "username": "string", "email": "string", "createdAt": "string", "updatedAt": "string" }
+  "user": { "ID": 1, "username": "string", "email": "string", "CreatedAt": "string", "UpdatedAt": "string" }
 }
 ```
 
@@ -129,12 +131,12 @@ Auth + `users#read`. Headers: `X-App-Id`, `X-Domain-Id`.
 
 ```json
 {
-  "id": 1,
+  "ID": 1,
   "username": "string",
   "email": "string",
-  "createdAt": "string",
-  "updatedAt": "string",
-  "deletedAt": null
+  "CreatedAt": "string",
+  "UpdatedAt": "string",
+  "DeletedAt": null
 }
 ```
 
@@ -261,13 +263,13 @@ Auth + `roles#read`. Headers: `X-App-Id`, `X-Domain-Id`.
 
 ```json
 {
-  "id": 1,
+  "ID": 1,
   "name": "string",
   "description": "string",
   "domainId": 1,
-  "domain": { "id": 1, "name": "string", "description": "string", "isOrganization": true, "parentId": null, "parent": null, "createdAt": "string", "updatedAt": "string" },
-  "createdAt": "string",
-  "updatedAt": "string"
+  "domain": { "ID": 1, "name": "string", "description": "string", "isOrganization": true, "parentId": null, "parent": null, "CreatedAt": "string", "UpdatedAt": "string" },
+  "CreatedAt": "string",
+  "UpdatedAt": "string"
 }
 ```
 
@@ -375,13 +377,13 @@ Auth + `permissions#read`. Header: `X-App-Id`.
 
 ```json
 {
-  "id": 1,
+  "ID": 1,
   "name": "string",
   "description": "string",
   "appId": 1,
-  "app": { "id": 1, "name": "string", "description": "string", "createdAt": "string", "updatedAt": "string" },
-  "createdAt": "string",
-  "updatedAt": "string"
+  "app": { "ID": 1, "name": "string", "description": "string", "CreatedAt": "string", "UpdatedAt": "string" },
+  "CreatedAt": "string",
+  "UpdatedAt": "string"
 }
 ```
 
@@ -464,14 +466,14 @@ Auth + `domains#read`. Headers: `X-App-Id`, `X-Domain-Id`.
 
 ```json
 {
-  "id": 1,
+  "ID": 1,
   "name": "string",
   "description": "string",
   "isOrganization": true,
   "parentId": null,
   "parent": { /* recursive Domain or null */ },
-  "createdAt": "string",
-  "updatedAt": "string"
+  "CreatedAt": "string",
+  "UpdatedAt": "string"
 }
 ```
 
@@ -553,11 +555,11 @@ Auth + `apps#read`. Headers: `X-App-Id`, `X-Domain-Id`.
 
 ```json
 {
-  "id": 1,
+  "ID": 1,
   "name": "string",
   "description": "string",
-  "createdAt": "string",
-  "updatedAt": "string"
+  "CreatedAt": "string",
+  "UpdatedAt": "string"
 }
 ```
 

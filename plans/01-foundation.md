@@ -1,14 +1,16 @@
 # Phase 1 — Foundation
 
-Authentication, app shell, dark mode, and the shared API layer.
+Authentication, app shell, dark mode, type-safe environment variables, and server function API layer.
 
 ## Step 0: Install Dependencies
 
 ```bash
 cd web
-bun add axios zustand @tanstack/react-query @tanstack/react-form @tanstack/zod-form-adapter zod
+bun add zustand @tanstack/react-query @tanstack/react-form @tanstack/zod-form-adapter zod
 bunx shadcn add sidebar separator tooltip card input label checkbox sonner button
 ```
+
+No Axios needed — server functions use native `fetch`.
 
 ## Step 1: Dark Mode Default
 
@@ -23,7 +25,7 @@ bunx shadcn add sidebar separator tooltip card input label checkbox sonner butto
 
 **File:** `src/lib/api.types.ts`
 
-TypeScript types mirroring all backend models:
+TypeScript types mirroring all backend models (see `.opencode/API.md` for contracts):
 
 ```typescript
 interface JSONResponse<T> {
@@ -100,69 +102,209 @@ interface Permission {
 }
 ```
 
-## Step 3: Axios API Client
+## Step 3: Type-Safe Environment Variables
 
-**File:** `src/lib/api.ts`
+### TypeScript Declarations
 
-Shared Axios instance for all backend calls:
+**File:** `src/env.d.ts`
+
+Provides type safety for server-side environment variables via `NodeJS.ProcessEnv` declarations:
 
 ```typescript
-import axios from "axios"
+/// <reference types="vite/client" />
 
-export const api = axios.create({
-  baseURL: "/api/v1",
-})
-
-// Request interceptor: attach auth headers from Zustand store
-api.interceptors.request.use((config) => {
-  const { accessToken, refreshToken } = useAuthStore.getState()
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`
-  }
-  const { domainId, appId } = useAuthStore.getState()
-  if (domainId) config.headers["X-Domain-Id"] = domainId
-  if (appId) config.headers["X-App-Id"] = appId
-  return config
-})
-
-// Response interceptor: handle 401 → attempt refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      const { refreshToken, setTokens, logout } = useAuthStore.getState()
-      if (!refreshToken) {
-        logout()
-        window.location.href = "/login"
-        return
-      }
-      try {
-        const res = await axios.post("/api/v1/users/refresh", null, {
-          headers: { "X-Refresh-Token": refreshToken },
-        })
-        const { accessToken: newAccess, refreshToken: newRefresh } = res.data.items
-        setTokens(newAccess, newRefresh)
-        error.config.headers.Authorization = `Bearer ${newAccess}`
-        return api.request(error.config)
-      } catch {
-        logout()
-        window.location.href = "/login"
-      }
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      readonly API_URL?: string
+      readonly NODE_ENV: "development" | "production" | "test"
     }
-    return Promise.reject(error)
   }
-)
+}
+
+export {}
 ```
 
-Helper to unwrap JSONResponse:
+This gives full autocomplete and type-checking for `process.env.API_URL` inside server functions.
+
+### Server-side env helper
+
+**File:** `src/lib/env.ts`
+
+Reads `process.env.API_URL` with type safety from `env.d.ts`, falls back to `http://localhost:8080`. Only accessed inside server functions (which are server-only by default).
+
 ```typescript
-export function unwrap<T>(res: { data: JSONResponse<T> }): T {
-  if (!res.data.isSuccess) throw new Error(res.data.message)
-  return res.data.items!
+export function getApiBaseUrl(): string {
+  return process.env.API_URL || "http://localhost:8080"
 }
 ```
 
-## Step 4: Zustand Auth Store
+Usage in server functions:
+```typescript
+import { getApiBaseUrl } from "@/lib/env"
+
+const url = `${getApiBaseUrl()}/api/v1/users`
+```
+
+## Step 4: Server API Client
+
+**File:** `src/lib/server/client.ts`
+
+Base fetch wrapper used by all server function handlers. Reads `API_BASE_URL` from type-safe env, unwraps `JSONResponse`, handles errors with status codes.
+
+```typescript
+import { getApiBaseUrl } from "@/lib/env"
+import type { JSONResponse } from "@/lib/api.types"
+
+interface RequestOptions {
+  accessToken?: string | null
+  domainId?: number | null
+  appId?: number | null
+  customHeaders?: Record<string, string>
+}
+
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(`API_ERROR:${status}:${message}`)
+    this.status = status
+    this.name = "ApiError"
+  }
+}
+
+export async function serverApi<T>(
+  method: string,
+  path: string,
+  options?: RequestOptions,
+  body?: unknown,
+  params?: Record<string, string | number | undefined>,
+): Promise<T> {
+  const url = new URL(`/api/v1${path}`, getApiBaseUrl())
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v != null) url.searchParams.set(k, String(v))
+    })
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.customHeaders ?? {}),
+  }
+  if (options?.accessToken) headers["Authorization"] = `Bearer ${options.accessToken}`
+  if (options?.domainId != null) headers["X-Domain-Id"] = String(options.domainId)
+  if (options?.appId != null) headers["X-App-Id"] = String(options.appId)
+
+  const res = await fetch(url.toString(), {
+    method,
+    headers,
+    body: body != null ? JSON.stringify(body) : undefined,
+  })
+
+  const json: JSONResponse<T> = await res.json()
+
+  if (res.status === 401) {
+    throw new ApiError("AUTH_EXPIRED:" + (json.message || "Token expired"), 401)
+  }
+
+  if (!res.ok) {
+    throw new ApiError(json.message || res.statusText, res.status)
+  }
+
+  if (!json.isSuccess) {
+    throw new ApiError(json.message, res.status)
+  }
+
+  return json.items as T
+}
+```
+
+Error conventions:
+- `AUTH_EXPIRED:...` → 401, client should attempt token refresh
+- `API_ERROR:403:...` → forbidden
+- `API_ERROR:404:...` → not found
+
+## Step 5: Auth Server Functions
+
+**File:** `src/lib/server/auth.ts`
+
+All auth endpoints from `.opencode/API.md`:
+
+```typescript
+import { createServerFn } from "@tanstack/react-start"
+import { z } from "zod"
+import { serverApi } from "./client"
+import type { LoginResponse, User, Domain } from "@/lib/api.types"
+
+export const loginFn = createServerFn()
+  .validator(
+    z.object({
+      username: z.string(),
+      password: z.string(),
+      isRemember: z.boolean().optional().default(false),
+    }),
+  )
+  .handler(async ({ data }) => {
+    return serverApi<LoginResponse>("POST", "/users/login", undefined, data)
+  })
+
+export const registerFn = createServerFn()
+  .validator(
+    z.object({
+      username: z.string(),
+      email: z.string().email(),
+      password: z.string().min(6),
+    }),
+  )
+  .handler(async ({ data }) => {
+    return serverApi<number>("POST", "/users", undefined, data)
+  })
+
+export const refreshTokenFn = createServerFn()
+  .validator(
+    z.object({
+      refreshToken: z.string(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    return serverApi<LoginResponse>("POST", "/users/refresh", undefined, undefined, undefined, {
+      "X-Refresh-Token": data.refreshToken,
+    })
+  })
+
+export const getOrganizationsFn = createServerFn()
+  .validator(
+    z.object({
+      accessToken: z.string(),
+      userId: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    return serverApi<Domain[]>(
+      "GET",
+      `/users/${data.userId}/organizations`,
+      { accessToken: data.accessToken },
+    )
+  })
+
+export const getPermissionsFn = createServerFn()
+  .validator(
+    z.object({
+      accessToken: z.string(),
+      userId: z.number(),
+      domainId: z.number().optional(),
+      appId: z.number().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    return serverApi<string[][]>(
+      "GET",
+      `/users/${data.userId}/permissions`,
+      { accessToken: data.accessToken, domainId: data.domainId, appId: data.appId },
+    )
+  })
+```
+
+## Step 6: Zustand Auth Store
 
 **File:** `src/lib/stores/auth-store.ts`
 
@@ -238,51 +380,80 @@ export const useAuthStore = create<AuthState>()(
         domainId: state.domainId,
         appId: state.appId,
       }),
-    }
-  )
+    },
+  ),
 )
 ```
 
-**IMPORTANT:** The store is imported by `api.ts` for interceptors. Use `useAuthStore.getState()` in non-React contexts (interceptors) and `useAuthStore()` hook in components.
+## Step 7: Auth Context Helper & Retry Wrapper
 
-## Step 5: API Functions (Axios Wrappers)
+**File:** `src/lib/queries/auth-context.ts`
 
-**File:** `src/lib/api/auth.ts`
+Helper to extract auth context from Zustand store for server function calls, plus a retry wrapper for handling expired tokens:
 
 ```typescript
-import { api, unwrap } from "@/lib/api"
-import type { LoginInput, LoginResponse, User, Domain } from "@/lib/api.types"
+import { useAuthStore } from "@/lib/stores/auth-store"
+import { refreshTokenFn } from "@/lib/server/auth"
 
-export const authApi = {
-  login: (body: LoginInput) =>
-    api.post<JSONResponse<LoginResponse>>("/v1/users/login", body).then(unwrap),
+export function getAuthContext() {
+  const { accessToken, domainId, appId } = useAuthStore.getState()
+  return {
+    accessToken: accessToken ?? undefined,
+    domainId: domainId ?? undefined,
+    appId: appId ?? undefined,
+  }
+}
 
-  register: (body: { username: string; email: string; password: string }) =>
-    api.post<JSONResponse<number>>("/v1/users", body).then(unwrap),
+export function useAuthContext() {
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const domainId = useAuthStore((s) => s.domainId)
+  const appId = useAuthStore((s) => s.appId)
+  return {
+    accessToken: accessToken ?? undefined,
+    domainId: domainId ?? undefined,
+    appId: appId ?? undefined,
+  }
+}
 
-  refresh: (refreshToken: string) =>
-    api
-      .post<JSONResponse<LoginResponse>>("/v1/users/refresh", null, {
-        headers: { "X-Refresh-Token": refreshToken },
-      })
-      .then(unwrap),
-
-  getOrganizations: (userId: number) =>
-    api.get<JSONResponse<Domain[]>>(`/v1/users/${userId}/organizations`).then(unwrap),
-
-  getPermissions: (userId: number) =>
-    api.get<JSONResponse<string[][]>>(`/v1/users/${userId}/permissions`).then(unwrap),
+export function withAuthRetry<T>(queryFn: () => Promise<T>): () => Promise<T> {
+  return async () => {
+    try {
+      return await queryFn()
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("AUTH_EXPIRED:")) {
+        const { refreshToken, setTokens, logout } = useAuthStore.getState()
+        if (!refreshToken) {
+          logout()
+          window.location.href = "/login"
+          throw error
+        }
+        try {
+          const result = await refreshTokenFn({ data: { refreshToken } })
+          setTokens(result.accessToken, result.refreshToken)
+          return await queryFn()
+        } catch {
+          logout()
+          window.location.href = "/login"
+          throw error
+        }
+      }
+      throw error
+    }
+  }
 }
 ```
 
-## Step 6: TanStack Query Setup & Auth Hooks
+**IMPORTANT:** `getAuthContext()` (uses `getState()`) is for non-React contexts. `useAuthContext()` (hook) is for React components and TanStack Query hooks.
+
+## Step 8: TanStack Query Setup & Auth Hooks
 
 **File:** `src/lib/queries/auth.ts`
 
 ```typescript
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { authApi } from "@/lib/api/auth"
+import { loginFn, getOrganizationsFn, getPermissionsFn } from "@/lib/server/auth"
 import { useAuthStore } from "@/lib/stores/auth-store"
+import { useAuthContext, withAuthRetry } from "./auth-context"
 import { useNavigate } from "@tanstack/react-router"
 
 export const authKeys = {
@@ -296,12 +467,15 @@ export function useLogin() {
   const navigate = useNavigate()
 
   return useMutation({
-    mutationFn: authApi.login,
-    onSuccess: async (data: LoginResponse) => {
-      setUser(data.user)
-      setTokens(data.accessToken, data.refreshToken)
+    mutationFn: (data: { username: string; password: string; isRemember?: boolean }) =>
+      loginFn({ data }),
+    onSuccess: async (loginData) => {
+      setUser(loginData.user)
+      setTokens(loginData.accessToken, loginData.refreshToken)
 
-      const orgs = await authApi.getOrganizations(data.user.ID)
+      const orgs = await getOrganizationsFn({
+        data: { accessToken: loginData.accessToken, userId: loginData.user.ID },
+      })
       setOrganizations(orgs)
 
       if (orgs.length === 0) {
@@ -318,31 +492,39 @@ export function useLogin() {
 }
 
 export function useUserOrganizations(userId: number) {
+  const auth = useAuthContext()
   return useQuery({
     queryKey: authKeys.organizations(userId),
-    queryFn: () => authApi.getOrganizations(userId),
-    enabled: !!userId,
+    queryFn: withAuthRetry(() =>
+      getOrganizationsFn({ data: { accessToken: auth.accessToken!, userId } }),
+    ),
+    enabled: !!auth.accessToken && !!userId,
   })
 }
 
 export function useUserPermissions(userId: number) {
+  const auth = useAuthContext()
   const { setPermissions } = useAuthStore()
 
   return useQuery({
     queryKey: authKeys.permissions(userId),
-    queryFn: async () => {
-      const tuples = await authApi.getPermissions(userId)
+    queryFn: withAuthRetry(async () => {
+      const tuples = await getPermissionsFn({
+        data: { accessToken: auth.accessToken!, userId, domainId: auth.domainId, appId: auth.appId },
+      })
       setPermissions(tuples)
       return tuples
-    },
-    enabled: !!userId,
+    }),
+    enabled: !!auth.accessToken && !!userId,
   })
 }
 ```
 
-## Step 7: Zod Validation Schemas
+## Step 9: Zod Validation Schemas
 
 **File:** `src/lib/schemas/auth.ts`
+
+Shared between TanStack Form and server function validators:
 
 ```typescript
 import { z } from "zod"
@@ -369,7 +551,7 @@ export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>
 ```
 
-## Step 8: Route Structure
+## Step 10: Route Structure
 
 ```
 src/routes/
@@ -402,7 +584,7 @@ src/routes/
 
 Use TanStack Router layout routes (`_auth` and `_authenticated`) for shared layout wrappers.
 
-## Step 9: App Shell Layout
+## Step 11: App Shell Layout
 
 **File:** `src/components/layout/app-shell.tsx`
 
@@ -429,13 +611,13 @@ Structure for authenticated pages:
 
 **shadcn components needed:** `sidebar`, `separator`, `tooltip`
 
-## Step 10: Auth Pages (TanStack Form + Zod)
+## Step 12: Auth Pages (TanStack Form + Zod)
 
 ### Login Page — `src/routes/_auth/login.tsx`
 
 - Use `useForm` from `@tanstack/react-form` with `zodValidator` and `loginSchema`
 - Form fields: username, password, "Remember me" checkbox
-- On submit: call `useLogin()` mutation
+- On submit: call `useLogin()` mutation (which calls `loginFn` server function)
 - On success: mutation handles org selection flow + redirect automatically
 - On error: display `mutation.error.message` via `sonner` toast
 - Link to register page
@@ -444,9 +626,9 @@ Structure for authenticated pages:
 
 - Use `useForm` with `zodValidator` and `registerSchema`
 - Form fields: username, email, password, confirm password
-- On submit: call register API, on success redirect to `/login` with toast
+- On submit: call `registerFn` server function, on success redirect to `/login` with toast
 
-## Step 11: Organization Selection Page
+## Step 13: Organization Selection Page
 
 ### Select Organization — `src/routes/_authenticated/select-organization.tsx`
 
@@ -455,9 +637,9 @@ This page is shown when a user has multiple organizations after login.
 - Read `organizations` from Zustand auth store (already populated by login flow)
 - Display as a card/list for user to pick one
 - On select:
-  1. Call `setDomain(selectedOrg.id)` in auth store
+  1. Call `setDomain(selectedOrg.ID)` in auth store
   2. Optionally fetch apps for this org to set a default `appId`
-  3. Fetch permissions: `GET /v1/users/{userId}/permissions` (with new X-Domain-Id, X-App-Id)
+  3. Fetch permissions via `getPermissionsFn` server function (with auth context)
   4. Store permissions in auth store via `setPermissions(tuples)`
   5. Navigate to `/dashboard`
 
@@ -465,7 +647,7 @@ This page is shown when a user has multiple organizations after login.
 
 Simple page: "You don't have access to any organization. Contact your administrator."
 
-## Step 12: Route Guards
+## Step 14: Route Guards
 
 **File:** `src/lib/auth-guard.ts`
 
@@ -492,7 +674,7 @@ export const Route = createFileRoute("/_authenticated")({
 })
 ```
 
-## Step 13: Permission Utility
+## Step 15: Permission Utility
 
 **File:** `src/lib/permissions.ts`
 
@@ -508,7 +690,7 @@ export function isSuperUser(permissions: Set<string>): boolean {
 export function checkPermission(
   permissions: Set<string>,
   resource: string,
-  action: string
+  action: string,
 ): boolean {
   if (isSuperUser(permissions)) return true
   return permissions.has(`${resource}#${action}`)
@@ -532,7 +714,7 @@ export const ACTIONS = {
 } as const
 ```
 
-## Step 14: Permission Hooks
+## Step 16: Permission Hooks
 
 **File:** `src/hooks/use-permission.ts`
 
@@ -562,15 +744,18 @@ export function useIsSuperUser(): boolean {
 }
 ```
 
-## Step 15: Files to Create/Modify
+## Step 17: Files to Create/Modify
 
 | File | Action |
 |---|---|
 | `src/routes/__root.tsx` | Modify: add `className="dark"` to `<html>`, add `QueryClientProvider`, update title |
 | `src/lib/api.types.ts` | Create: TypeScript types for all backend models |
-| `src/lib/api.ts` | Create: Axios instance with auth interceptors |
+| `src/env.d.ts` | Create: TypeScript declarations for `NodeJS.ProcessEnv` (type-safe env vars) |
+| `src/lib/env.ts` | Create: `getApiBaseUrl()` helper, fallback `http://localhost:8080` |
+| `src/lib/server/client.ts` | Create: base server API client (fetch wrapper, error handling) |
+| `src/lib/server/auth.ts` | Create: auth server functions (login, register, refresh, orgs, permissions) |
 | `src/lib/stores/auth-store.ts` | Create: Zustand auth store |
-| `src/lib/api/auth.ts` | Create: auth API functions (login, register, refresh, orgs, permissions) |
+| `src/lib/queries/auth-context.ts` | Create: auth context helper + `withAuthRetry` wrapper |
 | `src/lib/queries/auth.ts` | Create: TanStack Query hooks for auth (useLogin, useUserPermissions, etc.) |
 | `src/lib/schemas/auth.ts` | Create: Zod validation schemas for login/register forms |
 | `src/lib/permissions.ts` | Create: permission parsing utility |
@@ -584,7 +769,7 @@ export function useIsSuperUser(): boolean {
 | `src/routes/_authenticated/no-access.tsx` | Create: no-access page |
 | `src/components/layout/app-shell.tsx` | Create: sidebar + main layout |
 
-## Step 16: Install shadcn Components
+## Step 18: Install shadcn Components
 
 ```bash
 cd web
@@ -594,16 +779,18 @@ bunx shadcn add sidebar separator tooltip card input label checkbox sonner butto
 ## Completion Criteria
 
 - [ ] `bun run typecheck && bun run lint` passes
-- [ ] Login form works with TanStack Form + Zod validation against backend
-- [ ] Register form works with TanStack Form + Zod validation against backend
-- [ ] After login, organizations are fetched from `/v1/users/{id}/organizations`
+- [ ] `src/env.d.ts` provides TypeScript declarations for `process.env.API_URL`
+- [ ] `getApiBaseUrl()` returns `process.env.API_URL` with fallback to `http://localhost:8080`
+- [ ] Login form works with TanStack Form + Zod → calls `loginFn` server function
+- [ ] Register form works with TanStack Form + Zod → calls `registerFn` server function
+- [ ] After login, organizations are fetched via `getOrganizationsFn` server function
 - [ ] Single org → auto-selected, redirected to dashboard
 - [ ] Multiple orgs → redirected to `/select-organization` picker
 - [ ] Zero orgs → redirected to `/no-access` page
-- [ ] Organization selection sets `X-Domain-Id` in Axios interceptor
-- [ ] Permissions fetched and stored in Zustand after org selection
+- [ ] Organization selection updates auth context in Zustand
+- [ ] Permissions fetched via `getPermissionsFn` server function and stored in Zustand
 - [ ] Dark mode is active by default
 - [ ] Sidebar renders with navigation items (gated by permissions)
 - [ ] Unauthenticated users are redirected to `/login`
 - [ ] Authenticated users without org selection are redirected to `/select-organization`
-- [ ] Token refresh works transparently via Axios interceptor
+- [ ] Token refresh works via `withAuthRetry` wrapper (calls `refreshTokenFn` server function)

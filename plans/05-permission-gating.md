@@ -1,14 +1,14 @@
 # Phase 5 — Permission Gating
 
-Frontend-wide permission system that controls menu visibility, page access, and action availability based on user permissions from the backend. Integrates with Zustand auth store and TanStack Query.
+Frontend-wide permission system that controls menu visibility, page access, and action availability based on user permissions from the backend. Integrates with Zustand auth store, TanStack Query, and server functions.
 
 ## Step 1: Permission Data Flow
 
 ```
 Login → Zustand store: user + tokens set
-  → GET /v1/users/{userId}/organizations (after org selection)
-  → Axios automatically attaches X-App-Id, X-Domain-Id
-  → fetch GET /v1/users/{userId}/permissions
+  → getOrganizationsFn (after org selection)
+  → Auth context (accessToken, domainId, appId) passed to server functions
+  → getPermissionsFn server function → backend API with auth headers
   → parse permission tuples: [[sub, app, dom, res, act], ...]
   → extract "resource#action" strings → Set<string>
   → store in Zustand auth store (setPermissions)
@@ -35,7 +35,7 @@ export function isSuperUser(permissions: Set<string>): boolean {
 export function checkPermission(
   permissions: Set<string>,
   resource: string,
-  action: string
+  action: string,
 ): boolean {
   if (isSuperUser(permissions)) return true
   return permissions.has(`${resource}#${action}`)
@@ -137,7 +137,6 @@ Usage in route definitions:
 // e.g., users/index.tsx
 export const Route = createFileRoute("/_authenticated/users/")({
   beforeLoad: requirePermission("users", "read"),
-  // loader can use TanStack Query or server fn for SSR data
 })
 ```
 
@@ -173,21 +172,25 @@ Displayed when a user navigates to a page they don't have access to (fallback if
 
 ## Step 8: Permission Context Refresh
 
-When permissions change (e.g., after role/permission mutation), refresh the permission set in Zustand:
-
-- After `useAssignUserRoles()` mutation success → re-fetch permissions via TanStack Query and update Zustand store
-- After `useAssignRolePermissions()` mutation success → re-fetch permissions (if current user is affected)
-- Add `refreshPermissions()` function that calls the API and updates Zustand:
+When permissions change (e.g., after role/permission mutation), refresh the permission set in Zustand. Since all API calls now go through server functions, the refresh function calls the `getPermissionsFn` server function:
 
 ```typescript
-// In a utility or hook
+import { getPermissionsFn } from "@/lib/server/auth"
+import { useAuthStore } from "@/lib/stores/auth-store"
+import { getAuthContext } from "@/lib/queries/auth-context"
+
 async function refreshPermissions(userId: number) {
-  const tuples = await authApi.getPermissions(userId)
+  const auth = getAuthContext()
+  const tuples = await getPermissionsFn({
+    data: { accessToken: auth.accessToken!, userId, domainId: auth.domainId, appId: auth.appId },
+  })
   useAuthStore.getState().setPermissions(tuples)
 }
 ```
 
-Call this in mutation `onSuccess` callbacks where role/permission assignments change.
+Call this in mutation `onSuccess` callbacks where role/permission assignments change:
+- After `useAssignUserRoles()` mutation success → `refreshPermissions(userId)`
+- After `useAssignRolePermissions()` mutation success → `refreshPermissions(currentUserId)` (if current user is affected)
 
 ## Step 9: Files to Create/Modify
 
@@ -199,7 +202,7 @@ Call this in mutation `onSuccess` callbacks where role/permission assignments ch
 | `src/lib/auth-guard.ts` | Modify: add `requirePermission` helper |
 | `src/routes/_authenticated/unauthorized.tsx` | Create: unauthorized page |
 | All route files in `_authenticated/` | Modify: add `beforeLoad: requirePermission(...)` |
-| All mutation hooks with role/permission side effects | Modify: add permission refresh in `onSuccess` |
+| All mutation hooks with role/permission side effects | Modify: add permission refresh in `onSuccess` via `getPermissionsFn` |
 
 ## Completion Criteria
 
@@ -208,5 +211,5 @@ Call this in mutation `onSuccess` callbacks where role/permission assignments ch
 - [ ] All action buttons hidden when user lacks specific permission
 - [ ] SuperUser (`all#fullAccess`) sees everything
 - [ ] Permission hooks (`usePermission`, `useCanCreate`, etc.) work in all components
-- [ ] Permissions refresh after role/permission mutations (Zustand store updated)
+- [ ] Permissions refresh after role/permission mutations (Zustand store updated via server function)
 - [ ] `bun run typecheck && bun run lint` passes

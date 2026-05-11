@@ -1,33 +1,79 @@
 # Phase 4 — Apps, Roles & Permissions
 
-CRUD for apps, roles, and permissions, plus permission assignment to roles. Uses Axios API functions, TanStack Query hooks, TanStack Form + Zod.
+CRUD for apps, roles, and permissions, plus permission assignment to roles. Uses TanStack Start server functions, TanStack Query hooks, TanStack Form + Zod.
 
 ## Step 1: App Management
 
-### API Functions
+### App Server Functions
 
-**File:** `src/lib/api/apps.ts`
+**File:** `src/lib/server/apps.ts`
+
+Server functions for app endpoints (see `.opencode/API.md` — Apps section):
 
 ```typescript
-import { api, unwrap } from "@/lib/api"
-import type { App, JSONResponse, PaginatedResponse } from "@/lib/api.types"
+import { createServerFn } from "@tanstack/react-start"
+import { z } from "zod"
+import { serverApi } from "./client"
+import type { App, PaginatedResponse } from "@/lib/api.types"
 
-export const appApi = {
-  list: (params?: { page?: number; size?: number; sort?: string; filters?: string }) =>
-    api.get<JSONResponse<PaginatedResponse<App>>>("/v1/apps", { params }).then(unwrap),
+const authContextSchema = z.object({
+  accessToken: z.string(),
+  domainId: z.number().optional(),
+  appId: z.number().optional(),
+})
 
-  get: (id: number) =>
-    api.get<JSONResponse<App>>(`/v1/apps/${id}`).then(unwrap),
+export const getAppsFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      page: z.number().optional(),
+      size: z.number().optional(),
+      sort: z.string().optional(),
+      filters: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, ...params } = data
+    return serverApi<PaginatedResponse<App>>("GET", "/apps", { accessToken, domainId, appId }, undefined, params)
+  })
 
-  create: (body: { name: string; description: string }) =>
-    api.post<JSONResponse<number>>("/v1/apps", body).then(unwrap),
+export const getAppFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<App>("GET", `/apps/${id}`, { accessToken, domainId, appId })
+  })
 
-  update: (id: number, body: { name: string; description: string }) =>
-    api.put<JSONResponse<null>>(`/v1/apps/${id}`, body).then(unwrap),
+export const createAppFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      name: z.string(),
+      description: z.string().optional().default(""),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, ...body } = data
+    return serverApi<number>("POST", "/apps", { accessToken, domainId, appId }, body)
+  })
 
-  delete: (id: number) =>
-    api.delete<JSONResponse<null>>(`/v1/apps/${id}`).then(unwrap),
-}
+export const updateAppFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+      name: z.string(),
+      description: z.string().optional().default(""),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id, ...body } = data
+    return serverApi<null>("PUT", `/apps/${id}`, { accessToken, domainId, appId }, body)
+  })
+
+export const deleteAppFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<null>("DELETE", `/apps/${id}`, { accessToken, domainId, appId })
+  })
 ```
 
 ### Query Keys & Hooks
@@ -35,6 +81,10 @@ export const appApi = {
 **File:** `src/lib/queries/apps.ts`
 
 ```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getAppsFn, getAppFn, createAppFn, updateAppFn, deleteAppFn } from "@/lib/server/apps"
+import { useAuthContext, withAuthRetry } from "./auth-context"
+
 export const appKeys = {
   all: ["apps"] as const,
   lists: () => [...appKeys.all, "list"] as const,
@@ -43,11 +93,55 @@ export const appKeys = {
   detail: (id: number) => [...appKeys.details(), id] as const,
 }
 
-export function useApps(filters?: object) { ... }
-export function useApp(id: number) { ... }
-export function useCreateApp() { ... }
-export function useUpdateApp() { ... }
-export function useDeleteApp() { ... }
+export function useApps(filters?: { page?: number; size?: number; sort?: string; filters?: string }) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: appKeys.list(filters ?? {}),
+    queryFn: withAuthRetry(() => getAppsFn({ data: { ...auth, ...filters } })),
+    enabled: !!auth.accessToken,
+  })
+}
+
+export function useApp(id: number) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: appKeys.detail(id),
+    queryFn: withAuthRetry(() => getAppFn({ data: { ...auth, id } })),
+    enabled: !!auth.accessToken && !!id,
+  })
+}
+
+export function useCreateApp() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string }) =>
+      createAppFn({ data: { ...auth, ...body } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appKeys.all }),
+  })
+}
+
+export function useUpdateApp() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: number; name: string; description?: string }) =>
+      updateAppFn({ data: { ...auth, id, ...body } }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: appKeys.detail(id) })
+      qc.invalidateQueries({ queryKey: appKeys.lists() })
+    },
+  })
+}
+
+export function useDeleteApp() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: (id: number) => deleteAppFn({ data: { ...auth, id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appKeys.all }),
+  })
+}
 ```
 
 ### Zod Schema
@@ -55,6 +149,8 @@ export function useDeleteApp() { ... }
 **File:** `src/lib/schemas/app.ts`
 
 ```typescript
+import { z } from "zod"
+
 export const appSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().default(""),
@@ -86,22 +182,97 @@ Display name, description, timestamps. Edit form (TanStack Form + `appSchema`) a
 
 ## Step 2: Role Management
 
-### API Functions
+### Role Server Functions
 
-**File:** `src/lib/api/roles.ts`
+**File:** `src/lib/server/roles.ts`
+
+Server functions for role endpoints (see `.opencode/API.md` — Roles section):
 
 ```typescript
-export const roleApi = {
-  list: (params?) => ...,
-  get: (id) => ...,
-  create: (body: { name: string; description: string; domainId: number }) => ...,
-  update: (id, body) => ...,
-  delete: (id) => ...,
-  getPermissions: (id: number) =>
-    api.get<JSONResponse<string[][]>>(`/v1/roles/${id}/permissions`).then(unwrap),
-  assignPermissions: (id: number, permissionIds: number[]) =>
-    api.patch<JSONResponse<string[]>>(`/v1/roles/${id}/permissions`, permissionIds).then(unwrap),
-}
+import { createServerFn } from "@tanstack/react-start"
+import { z } from "zod"
+import { serverApi } from "./client"
+import type { Role, PaginatedResponse } from "@/lib/api.types"
+
+const authContextSchema = z.object({
+  accessToken: z.string(),
+  domainId: z.number().optional(),
+  appId: z.number().optional(),
+})
+
+export const getRolesFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      page: z.number().optional(),
+      size: z.number().optional(),
+      sort: z.string().optional(),
+      filters: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, ...params } = data
+    return serverApi<PaginatedResponse<Role>>("GET", "/roles", { accessToken, domainId, appId }, undefined, params)
+  })
+
+export const getRoleFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<Role>("GET", `/roles/${id}`, { accessToken, domainId, appId })
+  })
+
+export const createRoleFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      name: z.string(),
+      description: z.string().optional().default(""),
+      domainId: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, appId, ...body } = data
+    return serverApi<number>("POST", "/roles", { accessToken, domainId: body.domainId, appId }, body)
+  })
+
+export const updateRoleFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+      name: z.string(),
+      description: z.string().optional().default(""),
+      domainId: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, appId, id, ...body } = data
+    return serverApi<null>("PUT", `/roles/${id}`, { accessToken, domainId: body.domainId, appId }, body)
+  })
+
+export const deleteRoleFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<null>("DELETE", `/roles/${id}`, { accessToken, domainId, appId })
+  })
+
+export const getRolePermissionsFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<string[][]>("GET", `/roles/${id}/permissions`, { accessToken, domainId, appId })
+  })
+
+export const assignRolePermissionsFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+      permissionIds: z.array(z.number()),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id, permissionIds } = data
+    return serverApi<string[]>("PATCH", `/roles/${id}/permissions`, { accessToken, domainId, appId }, permissionIds)
+  })
 ```
 
 ### Query Keys & Hooks
@@ -109,6 +280,18 @@ export const roleApi = {
 **File:** `src/lib/queries/roles.ts`
 
 ```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+  getRolesFn,
+  getRoleFn,
+  createRoleFn,
+  updateRoleFn,
+  deleteRoleFn,
+  getRolePermissionsFn,
+  assignRolePermissionsFn,
+} from "@/lib/server/roles"
+import { useAuthContext, withAuthRetry } from "./auth-context"
+
 export const roleKeys = {
   all: ["roles"] as const,
   lists: () => [...roleKeys.all, "list"] as const,
@@ -118,13 +301,83 @@ export const roleKeys = {
   permissions: (id: number) => [...roleKeys.detail(id), "permissions"] as const,
 }
 
-export function useRoles(filters?: object) { ... }
-export function useRole(id: number) { ... }
-export function useRolePermissions(id: number) { ... }
-export function useCreateRole() { ... }
-export function useUpdateRole() { ... }
-export function useDeleteRole() { ... }
-export function useAssignRolePermissions() { ... }  // invalidates role permissions cache
+export function useRoles(filters?: { page?: number; size?: number; sort?: string; filters?: string }) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: roleKeys.list(filters ?? {}),
+    queryFn: withAuthRetry(() => getRolesFn({ data: { ...auth, ...filters } })),
+    enabled: !!auth.accessToken,
+  })
+}
+
+export function useRole(id: number) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: roleKeys.detail(id),
+    queryFn: withAuthRetry(() => getRoleFn({ data: { ...auth, id } })),
+    enabled: !!auth.accessToken && !!id,
+  })
+}
+
+export function useRolePermissions(id: number) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: roleKeys.permissions(id),
+    queryFn: withAuthRetry(() => getRolePermissionsFn({ data: { ...auth, id } })),
+    enabled: !!auth.accessToken && !!id,
+  })
+}
+
+export function useCreateRole() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string; domainId: number }) =>
+      createRoleFn({ data: { ...auth, ...body } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: roleKeys.all }),
+  })
+}
+
+export function useUpdateRole() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number
+      name: string
+      description?: string
+      domainId: number
+    }) => updateRoleFn({ data: { ...auth, id, ...body } }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: roleKeys.detail(id) })
+      qc.invalidateQueries({ queryKey: roleKeys.lists() })
+    },
+  })
+}
+
+export function useDeleteRole() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: (id: number) => deleteRoleFn({ data: { ...auth, id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: roleKeys.all }),
+  })
+}
+
+export function useAssignRolePermissions() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: ({ roleId, permissionIds }: { roleId: number; permissionIds: number[] }) =>
+      assignRolePermissionsFn({ data: { ...auth, id: roleId, permissionIds } }),
+    onSuccess: (_, { roleId }) => {
+      qc.invalidateQueries({ queryKey: roleKeys.permissions(roleId) })
+    },
+  })
+}
 ```
 
 ### Zod Schema
@@ -132,6 +385,8 @@ export function useAssignRolePermissions() { ... }  // invalidates role permissi
 **File:** `src/lib/schemas/role.ts`
 
 ```typescript
+import { z } from "zod"
+
 export const roleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().default(""),
@@ -173,18 +428,78 @@ Three sections:
 
 ## Step 3: Permission Management
 
-### API Functions
+### Permission Server Functions
 
-**File:** `src/lib/api/permissions.ts`
+**File:** `src/lib/server/permissions.ts`
+
+Server functions for permission endpoints (see `.opencode/API.md` — Permissions section):
 
 ```typescript
-export const permissionApi = {
-  list: (params?) => ...,
-  get: (id) => ...,
-  create: (body: { name: string; description: string; appId: number }) => ...,
-  update: (id, body) => ...,
-  delete: (id) => ...,
-}
+import { createServerFn } from "@tanstack/react-start"
+import { z } from "zod"
+import { serverApi } from "./client"
+import type { Permission, PaginatedResponse } from "@/lib/api.types"
+
+const authContextSchema = z.object({
+  accessToken: z.string(),
+  domainId: z.number().optional(),
+  appId: z.number().optional(),
+})
+
+export const getPermissionsFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      page: z.number().optional(),
+      size: z.number().optional(),
+      sort: z.string().optional(),
+      filters: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, ...params } = data
+    return serverApi<PaginatedResponse<Permission>>("GET", "/permissions", { accessToken, domainId, appId }, undefined, params)
+  })
+
+export const getPermissionFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<Permission>("GET", `/permissions/${id}`, { accessToken, domainId, appId })
+  })
+
+export const createPermissionFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      name: z.string(),
+      description: z.string().optional().default(""),
+      appId: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, ...body } = data
+    return serverApi<number>("POST", "/permissions", { accessToken, domainId, appId: body.appId }, body)
+  })
+
+export const updatePermissionFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+      name: z.string(),
+      description: z.string().optional().default(""),
+      appId: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, id, ...body } = data
+    return serverApi<null>("PUT", `/permissions/${id}`, { accessToken, domainId, appId: body.appId }, body)
+  })
+
+export const deletePermissionFn = createServerFn()
+  .validator(authContextSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<null>("DELETE", `/permissions/${id}`, { accessToken, domainId, appId })
+  })
 ```
 
 ### Query Keys & Hooks
@@ -192,6 +507,16 @@ export const permissionApi = {
 **File:** `src/lib/queries/permissions.ts`
 
 ```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+  getPermissionsFn,
+  getPermissionFn,
+  createPermissionFn,
+  updatePermissionFn,
+  deletePermissionFn,
+} from "@/lib/server/permissions"
+import { useAuthContext, withAuthRetry } from "./auth-context"
+
 export const permissionKeys = {
   all: ["permissions"] as const,
   lists: () => [...permissionKeys.all, "list"] as const,
@@ -200,11 +525,62 @@ export const permissionKeys = {
   detail: (id: number) => [...permissionKeys.details(), id] as const,
 }
 
-export function usePermissions(filters?: object) { ... }
-export function usePermission(id: number) { ... }
-export function useCreatePermission() { ... }
-export function useUpdatePermission() { ... }
-export function useDeletePermission() { ... }
+export function usePermissions(filters?: { page?: number; size?: number; sort?: string; filters?: string }) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: permissionKeys.list(filters ?? {}),
+    queryFn: withAuthRetry(() => getPermissionsFn({ data: { ...auth, ...filters } })),
+    enabled: !!auth.accessToken,
+  })
+}
+
+export function usePermission(id: number) {
+  const auth = useAuthContext()
+  return useQuery({
+    queryKey: permissionKeys.detail(id),
+    queryFn: withAuthRetry(() => getPermissionFn({ data: { ...auth, id } })),
+    enabled: !!auth.accessToken && !!id,
+  })
+}
+
+export function useCreatePermission() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string; appId: number }) =>
+      createPermissionFn({ data: { ...auth, ...body } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: permissionKeys.all }),
+  })
+}
+
+export function useUpdatePermission() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number
+      name: string
+      description?: string
+      appId: number
+    }) => updatePermissionFn({ data: { ...auth, id, ...body } }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: permissionKeys.detail(id) })
+      qc.invalidateQueries({ queryKey: permissionKeys.lists() })
+    },
+  })
+}
+
+export function useDeletePermission() {
+  const qc = useQueryClient()
+  const auth = useAuthContext()
+  return useMutation({
+    mutationFn: (id: number) => deletePermissionFn({ data: { ...auth, id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: permissionKeys.all }),
+  })
+}
 ```
 
 ### Zod Schema
@@ -212,6 +588,8 @@ export function useDeletePermission() { ... }
 **File:** `src/lib/schemas/permission.ts`
 
 ```typescript
+import { z } from "zod"
+
 export const permissionSchema = z.object({
   name: z.string().regex(/^[a-zA-Z]+#[a-zA-Z]+$/, "Must be resource#action format"),
   description: z.string().optional().default(""),
@@ -286,9 +664,9 @@ bunx shadcn add select textarea form popover command
 
 | File | Action |
 |---|---|
-| `src/lib/api/apps.ts` | Create: app Axios API functions |
-| `src/lib/api/roles.ts` | Create: role Axios API functions |
-| `src/lib/api/permissions.ts` | Create: permission Axios API functions |
+| `src/lib/server/apps.ts` | Create: app server functions |
+| `src/lib/server/roles.ts` | Create: role server functions |
+| `src/lib/server/permissions.ts` | Create: permission server functions |
 | `src/lib/queries/apps.ts` | Create: app TanStack Query hooks + query keys |
 | `src/lib/queries/roles.ts` | Create: role TanStack Query hooks + query keys |
 | `src/lib/queries/permissions.ts` | Create: permission TanStack Query hooks + query keys |
@@ -316,10 +694,10 @@ bunx shadcn add select textarea form popover command
 
 ## Completion Criteria
 
-- [ ] App list/detail/CRUD works end-to-end
-- [ ] Role list/detail/CRUD works end-to-end
-- [ ] Permission list/detail/CRUD works end-to-end
-- [ ] Permission assignment to roles works via dialog
+- [ ] App list/detail/CRUD works end-to-end via server functions
+- [ ] Role list/detail/CRUD works end-to-end via server functions
+- [ ] Permission list/detail/CRUD works end-to-end via server functions
+- [ ] Permission assignment to roles works via dialog → `assignRolePermissionsFn`
 - [ ] All create/edit/delete buttons gated by permission hooks
 - [ ] Reusable data-table component used across all list pages
 - [ ] TanStack Query cache invalidation works on all mutations

@@ -1,33 +1,91 @@
 # Phase 3 — Domain Management
 
-Nested organization tree, domain CRUD, and tree navigation. Uses Axios API functions, TanStack Query hooks, TanStack Form + Zod.
+Nested organization tree, domain CRUD, and tree navigation. Uses TanStack Start server functions, TanStack Query hooks, TanStack Form + Zod.
 
 Domains support nesting via `parentId` — a domain can have a parent domain, forming a tree. Domains also have an `isOrganization` flag.
 
-## Step 1: API Functions
+## Step 1: Domain Server Functions
 
-**File:** `src/lib/api/domains.ts`
+**File:** `src/lib/server/domains.ts`
+
+Server functions for all domain endpoints (see `.opencode/API.md` — Domains section):
 
 ```typescript
-import { api, unwrap } from "@/lib/api"
-import type { Domain, JSONResponse, PaginatedResponse } from "@/lib/api.types"
+import { createServerFn } from "@tanstack/react-start"
+import { z } from "zod"
+import { serverApi } from "./client"
+import type { Domain, PaginatedResponse } from "@/lib/api.types"
 
-export const domainApi = {
-  list: (params?: { page?: number; size?: number; sort?: string; filters?: string }) =>
-    api.get<JSONResponse<PaginatedResponse<Domain>>>("/v1/domains", { params }).then(unwrap),
+const authContextSchema = z.object({
+  accessToken: z.string(),
+  domainId: z.number().optional(),
+  appId: z.number().optional(),
+})
 
-  get: (id: number) =>
-    api.get<JSONResponse<Domain>>(`/v1/domains/${id}`).then(unwrap),
+export const getDomainsFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      page: z.number().optional(),
+      size: z.number().optional(),
+      sort: z.string().optional(),
+      filters: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, ...params } = data
+    return serverApi<PaginatedResponse<Domain>>("GET", "/domains", { accessToken, domainId, appId }, undefined, params)
+  })
 
-  create: (body: { name: string; description: string; isOrganization: boolean; parentId?: number | null }) =>
-    api.post<JSONResponse<number>>("/v1/domains", body).then(unwrap),
+export const getDomainFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<Domain>("GET", `/domains/${id}`, { accessToken, domainId, appId })
+  })
 
-  update: (id: number, body: { name: string; description: string; isOrganization: boolean; parentId?: number | null }) =>
-    api.put<JSONResponse<null>>(`/v1/domains/${id}`, body).then(unwrap),
+export const createDomainFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      name: z.string(),
+      description: z.string().optional().default(""),
+      isOrganization: z.boolean().optional().default(false),
+      parentId: z.number().nullable().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, ...body } = data
+    return serverApi<number>("POST", "/domains", { accessToken, domainId, appId }, body)
+  })
 
-  delete: (id: number) =>
-    api.delete<JSONResponse<null>>(`/v1/domains/${id}`).then(unwrap),
-}
+export const updateDomainFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+      name: z.string(),
+      description: z.string().optional().default(""),
+      isOrganization: z.boolean().optional().default(false),
+      parentId: z.number().nullable().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id, ...body } = data
+    return serverApi<null>("PUT", `/domains/${id}`, { accessToken, domainId, appId }, body)
+  })
+
+export const deleteDomainFn = createServerFn()
+  .validator(
+    authContextSchema.extend({
+      id: z.number(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { accessToken, domainId, appId, id } = data
+    return serverApi<null>("DELETE", `/domains/${id}`, { accessToken, domainId, appId })
+  })
 ```
 
 ## Step 2: TanStack Query Hooks & Query Keys
@@ -35,6 +93,10 @@ export const domainApi = {
 **File:** `src/lib/queries/domains.ts`
 
 ```typescript
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getDomainsFn, getDomainFn, createDomainFn, updateDomainFn, deleteDomainFn } from "@/lib/server/domains"
+import { useAuthContext, withAuthRetry } from "./auth-context"
+
 export const domainKeys = {
   all: ["domains"] as const,
   lists: () => [...domainKeys.all, "list"] as const,
@@ -43,34 +105,48 @@ export const domainKeys = {
   detail: (id: number) => [...domainKeys.details(), id] as const,
 }
 
-export function useDomains(filters?: object) {
+export function useDomains(filters?: { page?: number; size?: number; sort?: string; filters?: string }) {
+  const auth = useAuthContext()
   return useQuery({
     queryKey: domainKeys.list(filters ?? {}),
-    queryFn: () => domainApi.list(filters),
+    queryFn: withAuthRetry(() => getDomainsFn({ data: { ...auth, ...filters } })),
+    enabled: !!auth.accessToken,
   })
 }
 
 export function useDomain(id: number) {
+  const auth = useAuthContext()
   return useQuery({
     queryKey: domainKeys.detail(id),
-    queryFn: () => domainApi.get(id),
-    enabled: !!id,
+    queryFn: withAuthRetry(() => getDomainFn({ data: { ...auth, id } })),
+    enabled: !!auth.accessToken && !!id,
   })
 }
 
 export function useCreateDomain() {
   const qc = useQueryClient()
+  const auth = useAuthContext()
   return useMutation({
-    mutationFn: domainApi.create,
+    mutationFn: (body: { name: string; description?: string; isOrganization?: boolean; parentId?: number | null }) =>
+      createDomainFn({ data: { ...auth, ...body } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: domainKeys.all }),
   })
 }
 
 export function useUpdateDomain() {
   const qc = useQueryClient()
+  const auth = useAuthContext()
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) =>
-      domainApi.update(id, body),
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number
+      name: string
+      description?: string
+      isOrganization?: boolean
+      parentId?: number | null
+    }) => updateDomainFn({ data: { ...auth, id, ...body } }),
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: domainKeys.detail(id) })
       qc.invalidateQueries({ queryKey: domainKeys.lists() })
@@ -80,8 +156,9 @@ export function useUpdateDomain() {
 
 export function useDeleteDomain() {
   const qc = useQueryClient()
+  const auth = useAuthContext()
   return useMutation({
-    mutationFn: domainApi.delete,
+    mutationFn: (id: number) => deleteDomainFn({ data: { ...auth, id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: domainKeys.all }),
   })
 }
@@ -92,6 +169,8 @@ export function useDeleteDomain() {
 **File:** `src/lib/schemas/domain.ts`
 
 ```typescript
+import { z } from "zod"
+
 export const domainSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().default(""),
@@ -152,7 +231,7 @@ interface TreeNode<T> {
   children: TreeNode<T>[]
 }
 
-function buildTree<T extends { id: number; parentId: number | null }>(items: T[]): TreeNode<T>[]
+function buildTree<T extends { ID: number; parentId: number | null }>(items: T[]): TreeNode<T>[]
 ```
 
 ## Step 6: Domain Detail Page
@@ -216,7 +295,7 @@ bunx shadcn add collapsible breadcrumb select switch
 
 | File | Action |
 |---|---|
-| `src/lib/api/domains.ts` | Create: domain Axios API functions |
+| `src/lib/server/domains.ts` | Create: domain server functions |
 | `src/lib/queries/domains.ts` | Create: domain TanStack Query hooks + query keys |
 | `src/lib/schemas/domain.ts` | Create: domain Zod schema |
 | `src/lib/build-tree.ts` | Create: generic tree builder from flat list with parentId |
@@ -233,9 +312,9 @@ bunx shadcn add collapsible breadcrumb select switch
 
 - [ ] Domain tree renders with expand/collapse
 - [ ] Nested domains display correctly
-- [ ] Create domain dialog works with TanStack Form + Zod validation
-- [ ] Edit domain works
-- [ ] Delete domain with confirmation works
+- [ ] Create domain dialog works with TanStack Form + Zod → calls `createDomainFn`
+- [ ] Edit domain works via `updateDomainFn`
+- [ ] Delete domain with confirmation works via `deleteDomainFn`
 - [ ] Breadcrumb navigation works on detail page
 - [ ] Tree refreshes after CRUD operations (TanStack Query cache invalidation)
 - [ ] Permission gating on create/edit/delete buttons

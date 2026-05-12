@@ -1,10 +1,21 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
-import { TanStackDevtools } from "@tanstack/react-devtools"
-
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+} from "@tanstack/react-router"
+import { QueryClientProvider } from "@tanstack/react-query"
 import appCss from "../styles.css?url"
+import type { QueryClient } from "@tanstack/react-query"
+import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
-export const Route = createRootRoute({
+
+interface RouterContext {
+  queryClient: QueryClient
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       {
@@ -15,7 +26,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "KAS Bon",
       },
     ],
     links: [
@@ -31,30 +42,31 @@ export const Route = createRootRoute({
       <p>The requested page could not be found.</p>
     </main>
   ),
+  component: RootComponent,
   shellComponent: RootDocument,
 })
 
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext()
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Outlet />
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  )
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
-      <body>
-        {children}
-        <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
-        <Scripts />
-      </body>
+      <body>{children}</body>
+      <Scripts />
     </html>
   )
 }

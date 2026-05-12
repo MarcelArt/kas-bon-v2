@@ -1,18 +1,16 @@
 package routes
 
 import (
-	"github.com/MarcelArt/kas-bon-v2/internal/configs"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/handlers"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/middlewares"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
-	"github.com/casbin/casbin/v3"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
-func SetupRoleRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, e *casbin.Enforcer) {
+func SetupRoleRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, svc services.IRoleService) {
 	roles := v1.Group("/roles")
 
-	h := handlers.NewRoleHandler(repositories.NewRoleRepo(configs.DB), repositories.NewAppRepo(configs.DB), repositories.NewDomainRepo(configs.DB), repositories.NewPermissionRepo(configs.DB), e)
+	h := handlers.NewRoleHandler(svc)
 
 	roles.Get("/", middlewares.Authn(), authz.HasPermission("roles#read"), h.Read)
 	roles.Get("/:id", middlewares.Authn(), authz.HasPermission("roles#read"), h.GetByID)

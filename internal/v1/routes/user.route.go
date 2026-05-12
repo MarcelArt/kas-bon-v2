@@ -1,18 +1,16 @@
 package routes
 
 import (
-	"github.com/MarcelArt/kas-bon-v2/internal/configs"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/handlers"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/middlewares"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
-	"github.com/casbin/casbin/v3"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
-func SetupUserRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, e *casbin.Enforcer) {
+func SetupUserRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, svc services.IUserService) {
 	users := v1.Group("/users")
 
-	h := handlers.NewUserHandler(repositories.NewUserRepo(configs.DB), repositories.NewDomainRepo(configs.DB), repositories.NewRoleRepo(configs.DB), e)
+	h := handlers.NewUserHandler(svc)
 
 	users.Get("/", middlewares.Authn(), authz.HasPermission("users#read"), h.Read)
 	users.Get("/:id", middlewares.Authn(), authz.HasPermission("users#read"), h.GetByID)

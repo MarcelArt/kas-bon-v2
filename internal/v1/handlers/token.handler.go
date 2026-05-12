@@ -2,27 +2,17 @@ package handlers
 
 import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
-	"github.com/MarcelArt/kas-bon-v2/internal/enums"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
-	"github.com/casbin/casbin/v3"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
 type TokenHandler struct {
-	e     *casbin.Enforcer
-	uRepo repositories.IUserRepo
-	aRepo repositories.IAppRepo
-	dRepo repositories.IDomainRepo
+	svc services.ITokenService
 }
 
-func NewTokenHandler(e *casbin.Enforcer, uRepo repositories.IUserRepo, aRepo repositories.IAppRepo, dRepo repositories.IDomainRepo) *TokenHandler {
-	return &TokenHandler{
-		e:     e,
-		uRepo: uRepo,
-		aRepo: aRepo,
-		dRepo: dRepo,
-	}
+func NewTokenHandler(svc services.ITokenService) *TokenHandler {
+	return &TokenHandler{svc: svc}
 }
 
 // @Summary		Check token permission
@@ -45,30 +35,10 @@ func (h *TokenHandler) Token(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	user, err := h.uRepo.GetByID(userID)
+	ok, err := h.svc.CheckPermission(userID, payload)
 	if err != nil {
-		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed checking permission"))
 	}
 
-	dom, err := h.dRepo.GetByID(payload.DomainID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id header"))
-	}
-
-	app, err := h.aRepo.GetByID(payload.AppID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid app id header"))
-	}
-
-	res, act := common.ExtractPermissionResourceAndAction(payload.Permission)
-
-	if ok, _ := h.e.Enforce(user.Username, app.Name, dom.Name, enums.ResourceAll, enums.PermissionFull); ok {
-		return c.JSON(common.NewJSONResponse(true, "permitted"))
-	}
-
-	if ok, _ := h.e.Enforce(user.Username, app.Name, dom.Name, res, act); ok {
-		return c.JSON(common.NewJSONResponse(true, "permitted"))
-	}
-
-	return c.JSON(common.NewJSONResponse(false, "denied"))
+	return c.JSON(common.NewJSONResponse(ok, "permitted"))
 }

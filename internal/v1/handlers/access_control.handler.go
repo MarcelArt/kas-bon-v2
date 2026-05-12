@@ -1,20 +1,18 @@
 package handlers
 
 import (
-	"net/url"
-
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
-	"github.com/casbin/casbin/v3"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
 type AccessControlHandler struct {
-	e *casbin.Enforcer
+	svc services.IAccessControlService
 }
 
-func NewAccessControlHandler(e *casbin.Enforcer) *AccessControlHandler {
-	return &AccessControlHandler{e: e}
+func NewAccessControlHandler(svc services.IAccessControlService) *AccessControlHandler {
+	return &AccessControlHandler{svc: svc}
 }
 
 // @Summary		Get all roles
@@ -27,7 +25,7 @@ func NewAccessControlHandler(e *casbin.Enforcer) *AccessControlHandler {
 // @Router			/v1/access-controls/roles/{domain} [get]
 func (h *AccessControlHandler) GetAllRoles(c fiber.Ctx) error {
 	domain := c.Params("domain")
-	roles, err := h.e.GetAllRolesByDomain(domain)
+	roles, err := h.svc.GetAllRoles(domain)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving roles"))
 	}
@@ -47,13 +45,9 @@ func (h *AccessControlHandler) GetAllRoles(c fiber.Ctx) error {
 // @Router			/v1/access-controls/permissions/{app}/{domain}/{user} [get]
 func (h *AccessControlHandler) GetPermissionsForUser(c fiber.Ctx) error {
 	user := c.Params("user")
-	// app := c.Params("app")
 	domain := c.Params("domain")
 
-	user, _ = url.QueryUnescape(user)
-	domain, _ = url.QueryUnescape(domain)
-
-	permissions, err := h.e.GetImplicitPermissionsForUser(user, domain)
+	permissions, err := h.svc.GetPermissionsForUser(user, domain)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
 	}
@@ -77,6 +71,6 @@ func (h *AccessControlHandler) Eval(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing request"))
 	}
 
-	ok := common.IsAuthorized(h.e, req.Sub, req.App, req.Dom, req.Obj, req.Act)
+	ok := h.svc.Eval(req)
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(ok, "permitted"))
 }

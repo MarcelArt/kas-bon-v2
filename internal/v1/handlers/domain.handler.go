@@ -3,18 +3,16 @@ package handlers
 import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
 type DomainHandler struct {
-	repo repositories.IDomainRepo
+	svc services.IDomainService
 }
 
-func NewDomainHandler(repo repositories.IDomainRepo) *DomainHandler {
-	return &DomainHandler{
-		repo: repo,
-	}
+func NewDomainHandler(svc services.IDomainService) *DomainHandler {
+	return &DomainHandler{svc: svc}
 }
 
 // @Summary		Create a new domain
@@ -36,7 +34,7 @@ func (h *DomainHandler) Create(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	id, err := h.repo.Create(domain)
+	id, err := h.svc.Create(domain)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed creating domain"))
 	}
@@ -59,7 +57,7 @@ func (h *DomainHandler) Create(c fiber.Ctx) error {
 // @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/domains [get]
 func (h *DomainHandler) Read(c fiber.Ctx) error {
-	page, _ := h.repo.Read(c)
+	page, _ := h.svc.Read(c)
 	return c.Status(fiber.StatusOK).JSON(page)
 }
 
@@ -84,7 +82,7 @@ func (h *DomainHandler) Update(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	if err := h.repo.Update(id, domain); err != nil {
+	if err := h.svc.Update(id, domain); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed updating domain"))
 	}
 
@@ -104,7 +102,7 @@ func (h *DomainHandler) Update(c fiber.Ctx) error {
 // @Router			/v1/domains/{id} [delete]
 func (h *DomainHandler) Delete(c fiber.Ctx) error {
 	id := c.Params("id")
-	if err := h.repo.Delete(id); err != nil {
+	if err := h.svc.Delete(id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed deleting domain"))
 	}
 
@@ -124,7 +122,7 @@ func (h *DomainHandler) Delete(c fiber.Ctx) error {
 // @Router			/v1/domains/{id} [get]
 func (h *DomainHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")
-	domain, err := h.repo.GetByID(id)
+	domain, err := h.svc.GetByID(id)
 	if err != nil {
 		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting domain"))
 	}

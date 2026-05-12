@@ -3,18 +3,16 @@ package handlers
 import (
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
 type AppHandler struct {
-	repo repositories.IAppRepo
+	svc services.IAppService
 }
 
-func NewAppHandler(repo repositories.IAppRepo) *AppHandler {
-	return &AppHandler{
-		repo: repo,
-	}
+func NewAppHandler(svc services.IAppService) *AppHandler {
+	return &AppHandler{svc: svc}
 }
 
 // @Summary		Create a new app
@@ -36,7 +34,7 @@ func (h *AppHandler) Create(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	id, err := h.repo.Create(app)
+	id, err := h.svc.Create(app)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed creating app"))
 	}
@@ -59,7 +57,7 @@ func (h *AppHandler) Create(c fiber.Ctx) error {
 // @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/apps [get]
 func (h *AppHandler) Read(c fiber.Ctx) error {
-	page, _ := h.repo.Read(c)
+	page, _ := h.svc.Read(c)
 	return c.Status(fiber.StatusOK).JSON(page)
 }
 
@@ -84,7 +82,7 @@ func (h *AppHandler) Update(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	if err := h.repo.Update(id, app); err != nil {
+	if err := h.svc.Update(id, app); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed updating app"))
 	}
 
@@ -104,7 +102,7 @@ func (h *AppHandler) Update(c fiber.Ctx) error {
 // @Router			/v1/apps/{id} [delete]
 func (h *AppHandler) Delete(c fiber.Ctx) error {
 	id := c.Params("id")
-	if err := h.repo.Delete(id); err != nil {
+	if err := h.svc.Delete(id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed deleting app"))
 	}
 
@@ -124,7 +122,7 @@ func (h *AppHandler) Delete(c fiber.Ctx) error {
 // @Router			/v1/apps/{id} [get]
 func (h *AppHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")
-	app, err := h.repo.GetByID(id)
+	app, err := h.svc.GetByID(id)
 	if err != nil {
 		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting app"))
 	}

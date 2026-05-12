@@ -4,29 +4,17 @@ import (
 	"fmt"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
-	"github.com/MarcelArt/kas-bon-v2/internal/configs"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/usecases"
-	"github.com/alexedwards/argon2id"
-	"github.com/casbin/casbin/v3"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
 
 type UserHandler struct {
-	repo  repositories.IUserRepo
-	dRepo repositories.IDomainRepo
-	rRepo repositories.IRoleRepo
-	e     *casbin.Enforcer
+	svc services.IUserService
 }
 
-func NewUserHandler(repo repositories.IUserRepo, dRepo repositories.IDomainRepo, rRepo repositories.IRoleRepo, e *casbin.Enforcer) *UserHandler {
-	return &UserHandler{
-		repo:  repo,
-		dRepo: dRepo,
-		rRepo: rRepo,
-		e:     e,
-	}
+func NewUserHandler(svc services.IUserService) *UserHandler {
+	return &UserHandler{svc: svc}
 }
 
 // @Summary		Create a new user
@@ -45,18 +33,11 @@ func (h *UserHandler) Create(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	tx := configs.DB.Begin()
-	defer tx.Rollback()
-
-	registerUser := usecases.InitRegisterUserUsecase(tx)
-	registerUser.User = user
-
-	id, err := registerUser.Execute()
+	id, err := h.svc.Create(user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed creating user"))
 	}
 
-	tx.Commit()
 	return c.Status(fiber.StatusCreated).JSON(common.NewJSONResponse(id, "User created"))
 }
 
@@ -75,7 +56,7 @@ func (h *UserHandler) Create(c fiber.Ctx) error {
 // @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/users [get]
 func (h *UserHandler) Read(c fiber.Ctx) error {
-	page, _ := h.repo.Read(c)
+	page, _ := h.svc.Read(c)
 	return c.Status(fiber.StatusOK).JSON(page)
 }
 
@@ -100,7 +81,7 @@ func (h *UserHandler) Update(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	if err := h.repo.Update(id, user); err != nil {
+	if err := h.svc.Update(id, user); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed updating user"))
 	}
 
@@ -120,7 +101,7 @@ func (h *UserHandler) Update(c fiber.Ctx) error {
 // @Router			/v1/users/{id} [delete]
 func (h *UserHandler) Delete(c fiber.Ctx) error {
 	id := c.Params("id")
-	if err := h.repo.Delete(id); err != nil {
+	if err := h.svc.Delete(id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed deleting user"))
 	}
 
@@ -140,7 +121,7 @@ func (h *UserHandler) Delete(c fiber.Ctx) error {
 // @Router			/v1/users/{id} [get]
 func (h *UserHandler) GetByID(c fiber.Ctx) error {
 	id := c.Params("id")
-	user, err := h.repo.GetByID(id)
+	user, err := h.svc.GetByID(id)
 	if err != nil {
 		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
 	}
@@ -166,23 +147,9 @@ func (h *UserHandler) Login(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	user, err := h.repo.GetByUsernameOrEmail(login.Username)
+	res, err := h.svc.Login(login, c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "username or password invalid"))
-	}
-
-	ok, err := argon2id.ComparePasswordAndHash(login.Password, user.Password)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "unexpected error"))
-	}
-
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "username or password invalid"))
-	}
-
-	res, err := usecases.InitGenerateTokenPairUsecase().SetCtx(c).SetUser(user).SetIsRemember(login.IsRemember).Execute()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed generating tokens"))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(res, "Authenticated"))
@@ -206,12 +173,7 @@ func (h *UserHandler) Refresh(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(fmt.Errorf("missing isRemember claim"), "invalid refresh token"))
 	}
 
-	user, err := h.repo.GetByID(id)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(common.NewJSONResponse(err, "failed getting user"))
-	}
-
-	res, err := usecases.InitGenerateTokenPairUsecase().SetCtx(c).SetUser(user).SetIsRemember(isRemember).Execute()
+	res, err := h.svc.Refresh(id, isRemember, c)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed generating tokens"))
 	}
@@ -235,17 +197,10 @@ func (h *UserHandler) GetRoles(c fiber.Ctx) error {
 	id := c.Params("id")
 	domainID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
 
-	user, err := h.repo.GetByID(id)
+	roles, err := h.svc.GetRoles(id, domainID)
 	if err != nil {
-		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting roles"))
 	}
-
-	domain, err := h.dRepo.GetByID(domainID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id"))
-	}
-
-	roles := h.e.GetRolesForUserInDomain(user.Username, domain.Name)
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(roles, "Roles found"))
 }
@@ -266,18 +221,9 @@ func (h *UserHandler) GetPermissions(c fiber.Ctx) error {
 	id := c.Params("id")
 	domainID := fiber.GetReqHeader[uint](c, "X-Domain-Id")
 
-	user, err := h.repo.GetByID(id)
+	permissions, err := h.svc.GetPermissions(id, domainID)
 	if err != nil {
-		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
-	}
-	dom, err := h.dRepo.GetByID(domainID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id header"))
-	}
-
-	permissions, err := h.e.GetImplicitPermissionsForUser(user.Username, dom.Name)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed retrieving permissions"))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(permissions, "Success retrieving permissions"))
@@ -306,29 +252,9 @@ func (h *UserHandler) AssignRoles(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	user, err := h.repo.GetByID(id)
+	roles, err := h.svc.AssignRoles(id, domainID, roleIDs)
 	if err != nil {
-		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
-	}
-
-	dom, err := h.dRepo.GetByID(domainID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "invalid domain id header"))
-	}
-
-	if _, err := h.e.RemoveFilteredGroupingPolicy(0, user.Username, "", dom.Name); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed removing policy"))
-	}
-
-	roles, err := h.rRepo.GetDistinctByIDs(roleIDs)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving roles"))
-	}
-
-	for _, role := range roles {
-		if _, err := h.e.AddGroupingPolicy(user.Username, role, dom.Name); err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed adding policy"))
-		}
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed assigning roles"))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(roles, "Success assigning roles"))
@@ -345,19 +271,9 @@ func (h *UserHandler) AssignRoles(c fiber.Ctx) error {
 // @Router			/v1/users/{id}/organizations [get]
 func (h *UserHandler) GetOrganizations(c fiber.Ctx) error {
 	id := c.Params("id")
-	user, err := h.repo.GetByID(id)
+	domains, err := h.svc.GetOrganizations(id)
 	if err != nil {
-		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting user"))
-	}
-
-	doms, err := h.e.GetDomainsForUser(user.Username)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving domains"))
-	}
-
-	domains, err := h.dRepo.GetOrganizationsByNames(doms)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed retrieving domains"))
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed retrieving domains"))
 	}
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(domains, "Success retrieving domains"))

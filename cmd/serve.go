@@ -8,9 +8,15 @@ import (
 	"log"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/configs"
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/routes"
+	apiRoutes "github.com/MarcelArt/kas-bon-v2/internal/v1/routes"
+	"github.com/MarcelArt/kas-bon-v2/web/routes"
 	"github.com/gofiber/contrib/v3/swaggerui"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
+	"github.com/casbin/casbin/v3"
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gofiber/fiber/v3"
+	html "github.com/gofiber/template/html/v2"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/static"
@@ -30,9 +36,11 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		configs.SetupENV()
 		configs.ConnectDB()
-		// configs.SetupCasbin()
 
-		app := fiber.New()
+		engine := html.New("./web/views", ".html")
+		app := fiber.New(fiber.Config{
+			Views: engine,
+		})
 		app.Use(cors.New())
 
 		app.Use(swaggerui.New(swaggerui.Config{
@@ -51,7 +59,17 @@ to quickly create a Cobra application.`,
 			TimeFormat: "2006-01-02 15:04:05",
 			TimeZone:   "Local",
 		}))
-		routes.SetupRoutes(api)
+		apiRoutes.SetupRoutes(api)
+
+		a, _ := gormadapter.NewAdapterByDB(configs.DB)
+		e, _ := casbin.NewEnforcer("rbac_model.conf", a)
+		userSvc := services.NewUserService(
+			repositories.NewUserRepo(configs.DB),
+			repositories.NewDomainRepo(configs.DB),
+			repositories.NewRoleRepo(configs.DB),
+			e,
+		)
+		routes.SetupWebRoutes(app, userSvc)
 
 		port := fmt.Sprintf(":%s", configs.Env.PORT)
 		log.Printf("Listening on port %s", configs.Env.PORT)

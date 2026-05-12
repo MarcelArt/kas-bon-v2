@@ -1,0 +1,176 @@
+{{define "register"}}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - KAS Bon</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono/index.css">
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-container" x-data="registerForm()">
+      <div class="auth-header">
+        <div class="auth-logo">KAS BON</div>
+        <div class="auth-subtitle">Create a new account</div>
+      </div>
+
+      <div id="register-alert"></div>
+
+      <div class="auth-card">
+        <form id="register-form"
+              hx-post="/auth/register"
+              hx-target="#register-alert"
+              hx-swap="innerHTML"
+              hx-indicator="#register-form"
+              @submit="onSubmit($event)">
+
+          <div class="form-group">
+            <label class="form-label" for="username">Username</label>
+            <input class="form-input"
+                   :class="{'input-error': errors.username}"
+                   type="text"
+                   id="username"
+                   name="username"
+                   placeholder="Choose a username"
+                   required
+                   x-model="form.username"
+                   @input="clearError('username')">
+            <template x-if="errors.username">
+              <div class="form-error" x-text="errors.username"></div>
+            </template>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-input"
+                   :class="{'input-error': errors.email}"
+                   type="email"
+                   id="email"
+                   name="email"
+                   placeholder="Enter your email"
+                   required
+                   x-model="form.email"
+                   @input="clearError('email')">
+            <template x-if="errors.email">
+              <div class="form-error" x-text="errors.email"></div>
+            </template>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-input"
+                   :class="{'input-error': errors.password}"
+                   type="password"
+                   id="password"
+                   name="password"
+                   placeholder="Create a password"
+                   required
+                   x-model="form.password"
+                   @input="clearError('password')">
+            <template x-if="errors.password">
+              <div class="form-error" x-text="errors.password"></div>
+            </template>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirmPassword">Confirm Password</label>
+            <input class="form-input"
+                   :class="{'input-error': errors.confirmPassword}"
+                   type="password"
+                   id="confirmPassword"
+                   name="confirmPassword"
+                   placeholder="Confirm your password"
+                   required
+                   x-model="form.confirmPassword"
+                   @input="clearError('confirmPassword')">
+            <template x-if="errors.confirmPassword">
+              <div class="form-error" x-text="errors.confirmPassword"></div>
+            </template>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit" :disabled="loading">
+              <span class="htmx-hide-on-request" x-show="!loading">Create account</span>
+              <span class="htmx-indicator" x-show="loading">
+                <span class="loading-spinner"></span>
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="auth-footer">
+        Already have an account? <a href="/login">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+function registerForm() {
+  return {
+    form: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    },
+    errors: {},
+    loading: false,
+
+    onSubmit(e) {
+      this.errors = {};
+      if (!this.form.username.trim()) {
+        this.errors.username = 'Username is required';
+      }
+      if (!this.form.email.trim()) {
+        this.errors.email = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email)) {
+        this.errors.email = 'Invalid email format';
+      }
+      if (!this.form.password.trim()) {
+        this.errors.password = 'Password is required';
+      } else if (this.form.password.length < 6) {
+        this.errors.password = 'Password must be at least 6 characters';
+      }
+      if (!this.form.confirmPassword.trim()) {
+        this.errors.confirmPassword = 'Please confirm your password';
+      } else if (this.form.password !== this.form.confirmPassword) {
+        this.errors.confirmPassword = 'Passwords do not match';
+      }
+      if (Object.keys(this.errors).length > 0) {
+        e.preventDefault();
+        return;
+      }
+      this.loading = true;
+    },
+
+    clearError(field) {
+      delete this.errors[field];
+    }
+  };
+}
+
+document.body.addEventListener('htmx:afterRequest', function(e) {
+  if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/auth/register') {
+    var form = document.querySelector('#register-form');
+    if (form) {
+      var scope = Alpine.$data(form.closest('[x-data]'));
+      if (scope) scope.loading = false;
+    }
+
+    if (e.detail.xhr && e.detail.xhr.status === 200) {
+      var redirect = e.detail.xhr.getResponseHeader('HX-Redirect');
+      if (redirect) {
+        window.location.href = redirect;
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
+{{end}}

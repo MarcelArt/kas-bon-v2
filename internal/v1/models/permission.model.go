@@ -25,3 +25,8 @@ type PermissionInput struct {
 func (PermissionInput) TableName() string {
 	return permissionTableName
 }
+
+type GetRolePermissionsResponse struct {
+	Policies    [][]string   `json:"policies"`
+	Permissions []Permission `json:"permissions"`
+}

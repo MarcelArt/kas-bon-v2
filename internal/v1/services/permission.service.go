@@ -13,6 +13,7 @@ type IPermissionService interface {
 	Update(id any, permission models.Permission) error
 	Delete(id any) error
 	GetByID(id any) (models.Permission, error)
+	GetByAppID(appID any) ([]models.Permission, error)
 }
 
 type PermissionService struct {
@@ -41,4 +42,8 @@ func (s *PermissionService) Delete(id any) error {
 
 func (s *PermissionService) GetByID(id any) (models.Permission, error) {
 	return s.repo.GetByID(id)
+}
+
+func (s *PermissionService) GetByAppID(appID any) ([]models.Permission, error) {
+	return s.repo.GetByAppID(appID)
 }

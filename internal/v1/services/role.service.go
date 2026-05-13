@@ -1,9 +1,12 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/pkg/arrays"
 	"github.com/casbin/casbin/v3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/morkid/paginate"
@@ -15,7 +18,7 @@ type IRoleService interface {
 	Update(id any, role models.Role) error
 	Delete(id any) error
 	GetByID(id any) (models.Role, error)
-	GetPermissions(id any) ([][]string, error)
+	GetPermissions(id any) (models.GetRolePermissionsResponse, error)
 	AssignPermissions(roleID any, appID any, permissionIDs []uint) ([]string, error)
 }
 
@@ -51,23 +54,33 @@ func (s *RoleService) GetByID(id any) (models.Role, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *RoleService) GetPermissions(id any) ([][]string, error) {
+func (s *RoleService) GetPermissions(id any) (models.GetRolePermissionsResponse, error) {
+	var response models.GetRolePermissionsResponse
 	role, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
 	dom, err := s.dRepo.GetByID(role.DomainID)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
-	permissions, err := s.e.GetImplicitPermissionsForUser(role.Name, dom.Name)
+	response.Policies, err = s.e.GetImplicitPermissionsForUser(role.Name, dom.Name)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
-	return permissions, nil
+	permKeys := arrays.Map(response.Policies, func(policy []string) string {
+		return fmt.Sprintf("%s#%s", policy[3], policy[4])
+	})
+
+	response.Permissions, err = s.pRepo.GetByNames(permKeys)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
 }
 
 func (s *RoleService) AssignPermissions(roleID any, appID any, permissionIDs []uint) ([]string, error) {

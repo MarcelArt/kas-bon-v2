@@ -14,6 +14,8 @@ type IPermissionRepo interface {
 	Delete(id any) error
 	GetByID(id any) (models.Permission, error)
 	GetDistinctByIDs(ids []uint) ([]string, error)
+	GetByAppID(appID any) ([]models.Permission, error)
+	GetByNames(names []string) ([]models.Permission, error)
 }
 
 type PermissionRepo struct {
@@ -62,5 +64,17 @@ func (r *PermissionRepo) GetByID(id any) (models.Permission, error) {
 func (r *PermissionRepo) GetDistinctByIDs(ids []uint) ([]string, error) {
 	var permissions []string
 	err := r.db.Model(models.Permission{}).Where("id in ?", ids).Distinct("name").Pluck("name", &permissions).Error
+	return permissions, err
+}
+
+func (r *PermissionRepo) GetByAppID(appID any) ([]models.Permission, error) {
+	var permissions []models.Permission
+	err := r.db.Where("app_id = ?", appID).Find(&permissions).Error
+	return permissions, err
+}
+
+func (r *PermissionRepo) GetByNames(names []string) ([]models.Permission, error) {
+	var permissions []models.Permission
+	err := r.db.Where("name in ?", names).Find(&permissions).Error
 	return permissions, err
 }

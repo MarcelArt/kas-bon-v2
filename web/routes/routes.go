@@ -37,4 +37,9 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 		return c.Redirect().To("/apps")
 	})
 	protected.Get("/apps", appH.AppsPage)
+	protected.Get("/apps/new", appH.CreateAppForm)
+	protected.Post("/apps", appH.CreateApp)
+	protected.Get("/apps/:id/edit", appH.EditAppForm)
+	protected.Put("/apps/:id", appH.UpdateApp)
+	protected.Delete("/apps/:id", appH.DeleteApp)
 }

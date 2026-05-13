@@ -1,0 +1,29 @@
+{{define "app_row"}}
+<tr id="app-row-{{.ID}}">
+  <td class="cell-name">{{.Name}}</td>
+  <td class="cell-desc">{{if .Description}}{{.Description}}{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
+  <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
+  <td class="col-actions">
+    <div class="cell-actions">
+      <button class="btn btn-ghost btn-xs" title="Edit"
+              hx-get="/apps/{{.ID}}/edit" hx-target="#app-dialog-content" hx-swap="innerHTML"
+              @click="document.getElementById('app-dialog').showModal()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11.5 1.5a2.121 2.121 0 1 1 3 3L5 14l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+      </button>
+      <button class="btn btn-ghost btn-xs" title="Delete"
+              hx-delete="/apps/{{.ID}}"
+              hx-confirm="Delete this app?"
+              hx-target="closest tr"
+              hx-swap="outerHTML swap:0.3s">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 4 4 14 12 14 13 4"></polyline>
+          <line x1="2" y1="4" x2="14" y2="4"></line>
+          <path d="M5 4V2h6v2"></path>
+        </svg>
+      </button>
+    </div>
+  </td>
+</tr>
+{{end}}

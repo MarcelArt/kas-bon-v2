@@ -6,7 +6,8 @@
 <div class="apps-page">
   <div class="section-header">
     <p class="section-desc">Manage your registered applications</p>
-    <button class="btn btn-primary" onclick="document.getElementById('create-app-dialog').showModal()">
+    <button class="btn btn-primary" hx-get="/apps/new" hx-target="#app-dialog-content" hx-swap="innerHTML"
+            @click="document.getElementById('app-dialog').showModal()">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <line x1="8" y1="2" x2="8" y2="14"></line>
         <line x1="2" y1="8" x2="14" y2="8"></line>
@@ -27,26 +28,9 @@
             <th class="col-actions"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="apps-table-body">
           {{range .Apps}}
-          <tr>
-            <td class="cell-name">{{.Name}}</td>
-            <td class="cell-desc">{{if .Description}}{{.Description}}{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
-            <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
-            <td class="col-actions">
-              <button class="btn btn-ghost btn-xs" title="Delete"
-                      hx-delete="/api/v1/apps/{{.ID}}"
-                      hx-confirm="Delete this app?"
-                      hx-target="closest tr"
-                      hx-swap="outerHTML swap:0.3s">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 4 4 14 12 14 13 4"></polyline>
-                  <line x1="2" y1="4" x2="14" y2="4"></line>
-                  <path d="M5 4V2h6v2"></path>
-                </svg>
-              </button>
-            </td>
-          </tr>
+          {{template "app_row" .}}
           {{end}}
         </tbody>
       </table>
@@ -64,27 +48,8 @@
     </div>
   </div>
 
-  <dialog id="create-app-dialog" class="dialog">
-    <div class="dialog-content">
-      <div class="dialog-header">
-        <h2 class="dialog-title">Create App</h2>
-        <button class="dialog-close" onclick="document.getElementById('create-app-dialog').close()">&times;</button>
-      </div>
-      <form id="create-app-form" hx-post="/api/v1/apps" hx-swap="none"
-            hx-on::after-request="document.getElementById('create-app-dialog').close(); location.reload();">
-        <div class="form-group">
-          <label class="form-label" for="app-name">Name</label>
-          <input class="form-input" type="text" id="app-name" name="name" placeholder="App name" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="app-desc">Description</label>
-          <input class="form-input" type="text" id="app-desc" name="description" placeholder="Optional description">
-        </div>
-        <div class="dialog-footer">
-          <button type="submit" class="btn btn-primary">Create</button>
-          <button type="button" class="btn btn-outline" onclick="document.getElementById('create-app-dialog').close()">Cancel</button>
-        </div>
-      </form>
+  <dialog id="app-dialog" class="dialog">
+    <div class="dialog-content" id="app-dialog-content">
     </div>
   </dialog>
 </div>

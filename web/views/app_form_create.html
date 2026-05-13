@@ -1,0 +1,21 @@
+{{define "app_form_create"}}
+<div class="dialog-header">
+  <h2 class="dialog-title">Create App</h2>
+  <button class="dialog-close" onclick="document.getElementById('app-dialog').close()">&times;</button>
+</div>
+<form hx-post="/apps" hx-target="#apps-table-body" hx-swap="beforeend"
+      hx-on::after-request="document.getElementById('app-dialog').close()">
+  <div class="form-group">
+    <label class="form-label" for="app-name">Name</label>
+    <input class="form-input" type="text" id="app-name" name="name" placeholder="App name" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="app-desc">Description</label>
+    <input class="form-input" type="text" id="app-desc" name="description" placeholder="Optional description">
+  </div>
+  <div class="dialog-footer">
+    <button type="submit" class="btn btn-primary">Create</button>
+    <button type="button" class="btn btn-outline" onclick="document.getElementById('app-dialog').close()">Cancel</button>
+  </div>
+</form>
+{{end}}

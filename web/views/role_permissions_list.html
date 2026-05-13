@@ -1,0 +1,28 @@
+{{define "role_permissions_list"}}
+{{if .Permissions}}
+<form hx-post="/roles/{{.RoleID}}/permissions" hx-target="#permissions-list" hx-swap="innerHTML">
+  <input type="hidden" name="app_id" value="{{.AppID}}">
+  <div class="section-header" style="margin-bottom: 8px;">
+    <span class="section-title" style="font-size: 12px;">Permissions</span>
+  </div>
+  <div class="permissions-grid">
+    {{range .Permissions}}
+    <label class="permission-item">
+      <input class="checkbox-input" type="checkbox" name="permission_ids" value="{{.ID}}" {{if .IsAssigned}}checked{{end}}>
+      <div>
+        <span class="permission-name">{{.Name}}</span>
+        {{if .Description}}<span class="permission-desc">{{.Description}}</span>{{end}}
+      </div>
+    </label>
+    {{end}}
+  </div>
+  <div class="dialog-footer" style="margin-top: 12px;">
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>
+{{else}}
+<div class="empty-state" style="padding: 24px;">
+  <p>No permissions available for this app.</p>
+</div>
+{{end}}
+{{end}}

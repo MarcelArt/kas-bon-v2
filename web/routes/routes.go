@@ -72,4 +72,10 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	protected.Get("/roles/:id/edit", domainDetailH.EditRoleForm)
 	protected.Put("/roles/:id", domainDetailH.UpdateRole)
 	protected.Delete("/roles/:id", domainDetailH.DeleteRole)
+
+	permSvc := services.NewPermissionService(repositories.NewPermissionRepo(configs.DB))
+	rolePermH := handlers.NewRolePermissionHandler(roleSvc, permSvc, appSvc)
+	protected.Get("/roles/:id/permissions", rolePermH.PermissionsPage)
+	protected.Get("/roles/:id/permissions/list", rolePermH.PermissionsList)
+	protected.Post("/roles/:id/permissions", rolePermH.AssignPermissions)
 }

@@ -97,6 +97,26 @@ type RegisterForm struct {
 	ConfirmPassword string `form:"confirmPassword"`
 }
 
+type PermissionViewModel struct {
+	ID          uint
+	Name        string
+	Description string
+	IsAssigned  bool
+}
+
+type RolePermissionsPageData struct {
+	PageData
+	Role     RoleViewModel
+	DomainID uint
+	Apps     []AppViewModel
+}
+
+type RolePermissionsListData struct {
+	RoleID      uint
+	AppID       uint
+	Permissions []PermissionViewModel
+}
+
 type AlertData struct {
 	Type    string
 	Message string

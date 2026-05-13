@@ -1,0 +1,41 @@
+{{define "role_permissions"}}
+{{template "layout" .}}
+{{end}}
+
+{{define "role_permissions_content"}}
+<div class="role-permissions-page">
+  <a href="/domains/{{.DomainID}}" class="breadcrumb">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="10 2 4 8 10 14"></polyline>
+    </svg>
+    {{.Role.Name}}
+  </a>
+
+  <div class="detail-header">
+    <div>
+      <h2 class="detail-title">Assign Permissions</h2>
+      <p class="detail-desc">Manage permissions for role <strong>{{.Role.Name}}</strong></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-content" style="padding: 16px;">
+      <div class="form-group">
+        <label class="form-label" for="app-select">Select App</label>
+        <select class="form-input" id="app-select" name="app_id"
+                hx-get="/roles/{{.Role.ID}}/permissions/list"
+                hx-target="#permissions-list"
+                hx-trigger="change"
+                hx-swap="innerHTML">
+          <option value="">Choose an app...</option>
+          {{range .Apps}}
+          <option value="{{.ID}}">{{.Name}}</option>
+          {{end}}
+        </select>
+      </div>
+
+      <div id="permissions-list"></div>
+    </div>
+  </div>
+</div>
+{{end}}

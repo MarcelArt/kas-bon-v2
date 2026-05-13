@@ -29,6 +29,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);
@@ -203,6 +204,7 @@ a:hover {
   outline: none;
   transition: all 150ms;
   user-select: none;
+  text-decoration: none;
 }
 
 .btn:focus-visible {
@@ -805,4 +807,48 @@ a:hover {
   .mobile-menu-btn {
     display: inline-flex;
   }
+}
+
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--card);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 6px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+.permissions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.permission-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+.permission-item:hover {
+  background-color: var(--accent);
+}
+
+.permission-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.permission-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
 }

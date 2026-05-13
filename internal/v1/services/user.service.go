@@ -3,14 +3,12 @@ package services
 import (
 	"fmt"
 
-	"github.com/MarcelArt/kas-bon-v2/internal/common"
 	"github.com/MarcelArt/kas-bon-v2/internal/configs"
-	"github.com/MarcelArt/kas-bon-v2/internal/enums"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/usecases"
 	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v3"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/morkid/paginate"
 )
@@ -44,45 +42,11 @@ func (s *UserService) Create(user models.UserInput) (uint, error) {
 	tx := configs.DB.Begin()
 	defer tx.Rollback()
 
-	a, _ := gormadapter.NewAdapterByDB(tx)
-	enforcer, _ := casbin.NewEnforcer("rbac_model.conf", a)
-
-	dom := fmt.Sprintf("%s's organization", user.Username)
-
-	enforcer.AddPolicy(enums.RoleDefault, enums.AppName, dom, enums.ResourceAll, enums.PermissionFull)
-	enforcer.AddGroupingPolicy(user.Username, enums.RoleDefault, dom)
-
-	password, err := argon2id.CreateHash(user.Password, argon2id.DefaultParams)
+	registerUser := usecases.InitRegisterUserUsecase(tx)
+	registerUser.User = user
+	id, err := registerUser.Execute()
 	if err != nil {
-		return 0, fmt.Errorf("failed hashing password: %w", err)
-	}
-	user.Password = password
-
-	uRepo := repositories.NewUserRepo(tx)
-	dRepoTx := repositories.NewDomainRepo(tx)
-	rRepoTx := repositories.NewRoleRepo(tx)
-	pRepoTx := repositories.NewPermissionRepo(tx)
-
-	domainID, err := dRepoTx.Create(models.DomainInput{
-		Name:           dom,
-		IsOrganization: true,
-	})
-	if err != nil {
-		return 0, fmt.Errorf("failed creating domain: %w", err)
-	}
-
-	if _, err := rRepoTx.Create(models.RoleInput{Name: enums.RoleDefault, DomainID: domainID}); err != nil {
-		return 0, fmt.Errorf("failed creating default role: %w", err)
-	}
-
-	permission := fmt.Sprintf("%s#%s", enums.ResourceAll, enums.PermissionFull)
-	if _, err := pRepoTx.Create(models.PermissionInput{Name: permission, AppID: enums.AppID}); err != nil {
-		return 0, fmt.Errorf("failed creating default permission: %w", err)
-	}
-
-	id, err := uRepo.Create(user)
-	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed registering user: %w", err)
 	}
 
 	tx.Commit()
@@ -133,29 +97,10 @@ func (s *UserService) Refresh(userID any, isRemember bool, c fiber.Ctx) (models.
 }
 
 func (s *UserService) generateTokenPair(user models.User, isRemember bool, c fiber.Ctx) (models.LoginResponse, error) {
-	a, _ := gormadapter.NewAdapterByDB(configs.DB)
-	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
-
-	permissions, err := e.GetImplicitPermissionsForUser(user.Username)
-	if err != nil {
-		return models.LoginResponse{}, fmt.Errorf("failed retrieving permissions: %w", err)
-	}
-
-	claims := map[string]any{
-		"sub":    user.Username,
-		"userId": user.ID,
-		"iss":    c.BaseURL(),
-	}
-	at, rt, err := common.GenerateJWTPair(claims, permissions, isRemember)
-	if err != nil {
-		return models.LoginResponse{}, fmt.Errorf("failed generating tokens: %w", err)
-	}
-
-	return models.LoginResponse{
-		AccessToken:  at,
-		RefreshToken: rt,
-		User:         user,
-	}, nil
+	generateTokenPair := usecases.InitGenerateTokenPairUsecase(c)
+	generateTokenPair.IsRemember = isRemember
+	generateTokenPair.User = user
+	return generateTokenPair.Execute()
 }
 
 func (s *UserService) GetRoles(id any, domainID any) ([]string, error) {

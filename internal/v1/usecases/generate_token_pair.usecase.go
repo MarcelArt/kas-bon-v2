@@ -13,35 +13,20 @@ import (
 
 type GenerateTokenPairUsecase struct {
 	c          fiber.Ctx
-	user       models.User
-	isRemember bool
+	User       models.User
+	IsRemember bool
 	e          *casbin.Enforcer
 }
 
-func InitGenerateTokenPairUsecase() *GenerateTokenPairUsecase {
+func InitGenerateTokenPairUsecase(c fiber.Ctx) *GenerateTokenPairUsecase {
 	a, _ := gormadapter.NewAdapterByDB(configs.DB)
 
 	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
-	return &GenerateTokenPairUsecase{e: e}
-}
-
-func (u *GenerateTokenPairUsecase) SetCtx(c fiber.Ctx) *GenerateTokenPairUsecase {
-	u.c = c
-	return u
-}
-
-func (u *GenerateTokenPairUsecase) SetUser(user models.User) *GenerateTokenPairUsecase {
-	u.user = user
-	return u
-}
-
-func (u *GenerateTokenPairUsecase) SetIsRemember(isRemember bool) *GenerateTokenPairUsecase {
-	u.isRemember = isRemember
-	return u
+	return &GenerateTokenPairUsecase{e: e, c: c}
 }
 
 func (u *GenerateTokenPairUsecase) Execute() (res models.LoginResponse, err error) {
-	user := u.user
+	user := u.User
 	c := u.c
 
 	permissions, err := u.e.GetImplicitPermissionsForUser(user.Username)
@@ -54,7 +39,7 @@ func (u *GenerateTokenPairUsecase) Execute() (res models.LoginResponse, err erro
 		"userId": user.ID,
 		"iss":    c.BaseURL(),
 	}
-	at, rt, err := common.GenerateJWTPair(claims, permissions, u.isRemember)
+	at, rt, err := common.GenerateJWTPair(claims, permissions, u.IsRemember)
 	if err != nil {
 		return res, fmt.Errorf("failed generating tokens: %w", err)
 	}

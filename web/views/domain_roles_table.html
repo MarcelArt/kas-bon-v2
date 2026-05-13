@@ -1,0 +1,35 @@
+{{define "domain_roles_table"}}
+<div id="domains-roles-table-area">
+  <div class="card">
+    <div class="card-content">
+      {{if .Roles}}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Created</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="domains-roles-table-body">
+          {{range .Roles}}
+          {{template "role_row" .}}
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1z"></path>
+          <path d="M8 5v3"></path>
+          <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none"></circle>
+        </svg>
+        <p>No roles in this domain yet.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{template "pagination" .}}
+</div>
+{{end}}

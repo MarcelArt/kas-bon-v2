@@ -751,6 +751,43 @@ a:hover {
   text-decoration: none;
 }
 
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-bottom: 16px;
+}
+
+.breadcrumb:hover {
+  color: var(--foreground);
+}
+
+.detail-header {
+  margin-bottom: 24px;
+}
+
+.detail-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.detail-desc {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.detail-section {
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);

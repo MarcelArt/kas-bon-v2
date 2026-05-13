@@ -6,6 +6,8 @@ import (
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/MarcelArt/kas-bon-v2/web/handlers"
 	"github.com/MarcelArt/kas-bon-v2/web/middlewares"
+	"github.com/casbin/casbin/v3"
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 )
@@ -51,4 +53,23 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	protected.Get("/domains/:id/edit", domainH.EditDomainForm)
 	protected.Put("/domains/:id", domainH.UpdateDomain)
 	protected.Delete("/domains/:id", domainH.DeleteDomain)
+
+	a, _ := gormadapter.NewAdapterByDB(configs.DB)
+	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
+	roleSvc := services.NewRoleService(
+		repositories.NewRoleRepo(configs.DB),
+		repositories.NewAppRepo(configs.DB),
+		repositories.NewDomainRepo(configs.DB),
+		repositories.NewPermissionRepo(configs.DB),
+		e,
+	)
+
+	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc)
+	protected.Get("/domains/:id", domainDetailH.DomainDetailPage)
+	protected.Get("/domains/:id/roles/new", domainDetailH.CreateRoleForm)
+	protected.Post("/domains/:id/roles", domainDetailH.CreateRole)
+
+	protected.Get("/roles/:id/edit", domainDetailH.EditRoleForm)
+	protected.Put("/roles/:id", domainDetailH.UpdateRole)
+	protected.Delete("/roles/:id", domainDetailH.DeleteRole)
 }

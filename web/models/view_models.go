@@ -70,6 +70,20 @@ type DomainsPageData struct {
 	Pagination PaginationData
 }
 
+type DomainDetailPageData struct {
+	PageData
+	Domain     DomainViewModel
+	Roles      []RoleViewModel
+	Pagination PaginationData
+}
+
+type RoleViewModel struct {
+	ID          uint
+	Name        string
+	Description string
+	CreatedAt   time.Time
+}
+
 type LoginForm struct {
 	Username   string `form:"username"`
 	Password   string `form:"password"`

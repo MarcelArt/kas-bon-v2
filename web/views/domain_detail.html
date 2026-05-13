@@ -1,0 +1,42 @@
+{{define "domain_detail"}}
+{{template "layout" .}}
+{{end}}
+
+{{define "domain_detail_content"}}
+<div class="domain-detail-page">
+  <a href="/domains" class="breadcrumb">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="10 2 4 8 10 14"></polyline>
+    </svg>
+    Domains
+  </a>
+
+  <div class="detail-header">
+    <div>
+      <h2 class="detail-title">{{.Domain.Name}}</h2>
+      <p class="detail-desc">{{if .Domain.Description}}{{.Domain.Description}}{{else}}<span class="text-muted">No description</span>{{end}}</p>
+    </div>
+  </div>
+
+  <div class="detail-section">
+    <div class="section-header">
+      <h3 class="section-title">Roles</h3>
+      <button class="btn btn-primary" hx-get="/domains/{{.Domain.ID}}/roles/new" hx-target="#role-dialog-content" hx-swap="innerHTML"
+              @click="document.getElementById('role-dialog').showModal()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="2" x2="8" y2="14"></line>
+          <line x1="2" y1="8" x2="14" y2="8"></line>
+        </svg>
+        New Role
+      </button>
+    </div>
+
+    {{template "domain_roles_table" .}}
+  </div>
+
+  <dialog id="role-dialog" class="dialog">
+    <div class="dialog-content" id="role-dialog-content">
+    </div>
+  </dialog>
+</div>
+{{end}}

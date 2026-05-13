@@ -101,7 +101,15 @@ type PermissionViewModel struct {
 	ID          uint
 	Name        string
 	Description string
+	CreatedAt   time.Time
 	IsAssigned  bool
+}
+
+type AppDetailPageData struct {
+	PageData
+	App         AppViewModel
+	Permissions []PermissionViewModel
+	Pagination  PaginationData
 }
 
 type RolePermissionsPageData struct {

@@ -1,0 +1,33 @@
+{{define "app_permissions_table"}}
+<div id="apps-permissions-table-area">
+  <div class="card">
+    <div class="card-content">
+      {{if .Permissions}}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Created</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="apps-permissions-table-body">
+          {{range .Permissions}}
+          {{template "permission_row" .}}
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1L2 4v4c0 3.5 2.6 6.8 6 7.5 3.4-.7 6-4 6-7.5V4L8 1z"></path>
+        </svg>
+        <p>No permissions in this app yet.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{template "pagination" .}}
+</div>
+{{end}}

@@ -1,0 +1,21 @@
+{{define "permission_form_edit"}}
+<div class="dialog-header">
+  <h2 class="dialog-title">Edit Permission</h2>
+  <button class="dialog-close" onclick="document.getElementById('permission-dialog').close()">&times;</button>
+</div>
+<form hx-put="/permissions/{{.ID}}" hx-target="#permission-row-{{.ID}}" hx-swap="outerHTML"
+      hx-on::after-request="document.getElementById('permission-dialog').close()">
+  <div class="form-group">
+    <label class="form-label" for="perm-name">Name</label>
+    <input class="form-input" type="text" id="perm-name" name="name" value="{{.Name}}" disabled>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="perm-desc">Description</label>
+    <input class="form-input" type="text" id="perm-desc" name="description" value="{{.Description}}" placeholder="Optional description">
+  </div>
+  <div class="dialog-footer">
+    <button type="submit" class="btn btn-primary">Update</button>
+    <button type="button" class="btn btn-outline" onclick="document.getElementById('permission-dialog').close()">Cancel</button>
+  </div>
+</form>
+{{end}}

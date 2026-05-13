@@ -1,0 +1,42 @@
+{{define "app_detail"}}
+{{template "layout" .}}
+{{end}}
+
+{{define "app_detail_content"}}
+<div class="app-detail-page">
+  <a href="/apps" class="breadcrumb">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="10 2 4 8 10 14"></polyline>
+    </svg>
+    Apps
+  </a>
+
+  <div class="detail-header">
+    <div>
+      <h2 class="detail-title">{{.App.Name}}</h2>
+      <p class="detail-desc">{{if .App.Description}}{{.App.Description}}{{else}}<span class="text-muted">No description</span>{{end}}</p>
+    </div>
+  </div>
+
+  <div class="detail-section">
+    <div class="section-header">
+      <h3 class="section-title">Permissions</h3>
+      <button class="btn btn-primary" hx-get="/apps/{{.App.ID}}/permissions/new" hx-target="#permission-dialog-content" hx-swap="innerHTML"
+              @click="document.getElementById('permission-dialog').showModal()">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="2" x2="8" y2="14"></line>
+          <line x1="2" y1="8" x2="14" y2="8"></line>
+        </svg>
+        New Permission
+      </button>
+    </div>
+
+    {{template "app_permissions_table" .}}
+  </div>
+
+  <dialog id="permission-dialog" class="dialog">
+    <div class="dialog-content" id="permission-dialog-content">
+    </div>
+  </dialog>
+</div>
+{{end}}

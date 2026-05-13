@@ -45,6 +45,15 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	protected.Put("/apps/:id", appH.UpdateApp)
 	protected.Delete("/apps/:id", appH.DeleteApp)
 
+	permSvc := services.NewPermissionService(repositories.NewPermissionRepo(configs.DB))
+	appDetailH := handlers.NewAppDetailHandler(appSvc, permSvc)
+	protected.Get("/apps/:id", appDetailH.AppDetailPage)
+	protected.Get("/apps/:id/permissions/new", appDetailH.CreatePermissionForm)
+	protected.Post("/apps/:id/permissions", appDetailH.CreatePermission)
+	protected.Get("/permissions/:id/edit", appDetailH.EditPermissionForm)
+	protected.Put("/permissions/:id", appDetailH.UpdatePermission)
+	protected.Delete("/permissions/:id", appDetailH.DeletePermission)
+
 	domainSvc := services.NewDomainService(repositories.NewDomainRepo(configs.DB))
 	domainH := handlers.NewDomainHandler(domainSvc)
 	protected.Get("/domains", domainH.DomainsPage)
@@ -73,7 +82,6 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	protected.Put("/roles/:id", domainDetailH.UpdateRole)
 	protected.Delete("/roles/:id", domainDetailH.DeleteRole)
 
-	permSvc := services.NewPermissionService(repositories.NewPermissionRepo(configs.DB))
 	rolePermH := handlers.NewRolePermissionHandler(roleSvc, permSvc, appSvc)
 	protected.Get("/roles/:id/permissions", rolePermH.PermissionsPage)
 	protected.Get("/roles/:id/permissions/list", rolePermH.PermissionsList)

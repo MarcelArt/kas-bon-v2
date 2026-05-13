@@ -1,0 +1,22 @@
+{{define "permission_form_create"}}
+<div class="dialog-header">
+  <h2 class="dialog-title">Create Permission</h2>
+  <button class="dialog-close" onclick="document.getElementById('permission-dialog').close()">&times;</button>
+</div>
+<form hx-post="/apps/{{.AppID}}/permissions" hx-target="#apps-permissions-table-body" hx-swap="beforeend"
+      hx-on::after-request="document.getElementById('permission-dialog').close()">
+  <input type="hidden" name="appId" value="{{.AppID}}">
+  <div class="form-group">
+    <label class="form-label" for="perm-name">Name</label>
+    <input class="form-input" type="text" id="perm-name" name="name" placeholder="Permission name" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="perm-desc">Description</label>
+    <input class="form-input" type="text" id="perm-desc" name="description" placeholder="Optional description">
+  </div>
+  <div class="dialog-footer">
+    <button type="submit" class="btn btn-primary">Create</button>
+    <button type="button" class="btn btn-outline" onclick="document.getElementById('permission-dialog').close()">Cancel</button>
+  </div>
+</form>
+{{end}}

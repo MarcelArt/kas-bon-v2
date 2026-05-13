@@ -6,7 +6,7 @@ const domainTableName = "domains"
 
 type Domain struct {
 	gorm.Model
-	Name           string `gorm:"not null;unique" json:"name"`
+	Name           string `gorm:"not null" json:"name"`
 	Description    string `json:"description"`
 	IsOrganization bool   `gorm:"not null" json:"isOrganization"`
 
@@ -17,7 +17,7 @@ type Domain struct {
 
 type DomainInput struct {
 	Input
-	Name           string `gorm:"not null;unique" json:"name"`
+	Name           string `gorm:"not null" json:"name"`
 	Description    string `json:"description"`
 	IsOrganization bool   `gorm:"not null" json:"isOrganization"`
 

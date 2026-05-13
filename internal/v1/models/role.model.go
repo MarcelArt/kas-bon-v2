@@ -6,7 +6,7 @@ const roleTableName = "roles"
 
 type Role struct {
 	gorm.Model
-	Name        string `gorm:"not null;unique" json:"name"`
+	Name        string `gorm:"not null" json:"name"`
 	Description string `json:"description"`
 
 	DomainID uint `gorm:"not null" json:"domainId"`
@@ -16,7 +16,7 @@ type Role struct {
 
 type RoleInput struct {
 	Input
-	Name        string `gorm:"not null;unique" json:"name"`
+	Name        string `gorm:"not null" json:"name"`
 	Description string `json:"description"`
 
 	DomainID uint `gorm:"not null" json:"domainId"`

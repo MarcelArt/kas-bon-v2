@@ -1,6 +1,6 @@
 {{define "layout"}}
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark preload">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,8 +11,8 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-  <div class="app-shell" x-data="{ sidebarOpen: window.innerWidth >= 768 }">
-    <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen, 'sidebar-closed': !sidebarOpen }">
+  <div class="app-shell" x-data="{ sidebarOpen: window.innerWidth >= 768 }" x-init="$nextTick(() => { document.documentElement.classList.remove('preload') })">
+    <aside class="sidebar sidebar-open" :class="{ 'sidebar-open': sidebarOpen, 'sidebar-closed': !sidebarOpen }">
       <div class="sidebar-header">
         <span class="sidebar-brand" x-show="sidebarOpen" x-cloak>KAS BON</span>
         <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen" :title="sidebarOpen ? 'Collapse' : 'Expand'">

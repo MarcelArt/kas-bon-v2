@@ -385,6 +385,11 @@ a:hover {
   display: none !important;
 }
 
+.preload .sidebar,
+.preload .main-content {
+  transition: none !important;
+}
+
 .app-shell {
   display: flex;
   min-height: 100vh;

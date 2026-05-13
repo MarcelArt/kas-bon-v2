@@ -30,16 +30,25 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 
 	protected := app.Group("/", middlewares.CookieAuth(userSvc))
 
-	appSvc := services.NewAppService(repositories.NewAppRepo(configs.DB))
-	appH := handlers.NewAppHandler(appSvc)
-
 	protected.Get("/dashboard", func(c fiber.Ctx) error {
 		return c.Redirect().To("/apps")
 	})
+
+	appSvc := services.NewAppService(repositories.NewAppRepo(configs.DB))
+	appH := handlers.NewAppHandler(appSvc)
 	protected.Get("/apps", appH.AppsPage)
 	protected.Get("/apps/new", appH.CreateAppForm)
 	protected.Post("/apps", appH.CreateApp)
 	protected.Get("/apps/:id/edit", appH.EditAppForm)
 	protected.Put("/apps/:id", appH.UpdateApp)
 	protected.Delete("/apps/:id", appH.DeleteApp)
+
+	domainSvc := services.NewDomainService(repositories.NewDomainRepo(configs.DB))
+	domainH := handlers.NewDomainHandler(domainSvc)
+	protected.Get("/domains", domainH.DomainsPage)
+	protected.Get("/domains/new", domainH.CreateDomainForm)
+	protected.Post("/domains", domainH.CreateDomain)
+	protected.Get("/domains/:id/edit", domainH.EditDomainForm)
+	protected.Put("/domains/:id", domainH.UpdateDomain)
+	protected.Delete("/domains/:id", domainH.DeleteDomain)
 }

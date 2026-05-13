@@ -1,0 +1,27 @@
+{{define "domain_form_create"}}
+<div class="dialog-header">
+  <h2 class="dialog-title">Create Domain</h2>
+  <button class="dialog-close" onclick="document.getElementById('domain-dialog').close()">&times;</button>
+</div>
+<form hx-post="/domains" hx-target="#domains-table-body" hx-swap="beforeend"
+      hx-on::after-request="document.getElementById('domain-dialog').close()">
+  <div class="form-group">
+    <label class="form-label" for="domain-name">Name</label>
+    <input class="form-input" type="text" id="domain-name" name="name" placeholder="Domain name" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="domain-desc">Description</label>
+    <input class="form-input" type="text" id="domain-desc" name="description" placeholder="Optional description">
+  </div>
+  <div class="form-group">
+    <div class="checkbox-group">
+      <input class="checkbox-input" type="checkbox" id="domain-org" name="isOrganization" value="true">
+      <label class="checkbox-label" for="domain-org">Is Organization</label>
+    </div>
+  </div>
+  <div class="dialog-footer">
+    <button type="submit" class="btn btn-primary">Create</button>
+    <button type="button" class="btn btn-outline" onclick="document.getElementById('domain-dialog').close()">Cancel</button>
+  </div>
+</form>
+{{end}}

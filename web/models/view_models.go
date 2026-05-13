@@ -19,6 +19,19 @@ type AppsPageData struct {
 	Apps []AppViewModel
 }
 
+type DomainViewModel struct {
+	ID             uint
+	Name           string
+	Description    string
+	IsOrganization bool
+	CreatedAt      time.Time
+}
+
+type DomainsPageData struct {
+	PageData
+	Domains []DomainViewModel
+}
+
 type LoginForm struct {
 	Username   string `form:"username"`
 	Password   string `form:"password"`

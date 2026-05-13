@@ -16,7 +16,7 @@ func NewDomainHandler(domainSvc services.IDomainService) *DomainHandler {
 }
 
 func (h *DomainHandler) DomainsPage(c fiber.Ctx) error {
-	_, domains := h.domainSvc.Read(c)
+	page, domains := h.domainSvc.Read(c)
 
 	viewDomains := make([]webModels.DomainViewModel, len(domains))
 	for i, d := range domains {
@@ -29,13 +29,23 @@ func (h *DomainHandler) DomainsPage(c fiber.Ctx) error {
 		}
 	}
 
-	return c.Render("domains", webModels.DomainsPageData{
+	data := webModels.DomainsPageData{
 		PageData: webModels.PageData{
 			Title:      "Domains",
 			ActivePage: "domains",
 		},
 		Domains: viewDomains,
-	})
+		Pagination: webModels.NewPaginationData(
+			page.Page, page.Size, page.TotalPages, page.Total,
+			page.First, page.Last, "/domains",
+		),
+	}
+
+	if isHtmx(c) {
+		return c.Render("domains_table", data)
+	}
+
+	return c.Render("domains", data)
 }
 
 func (h *DomainHandler) CreateDomainForm(c fiber.Ctx) error {

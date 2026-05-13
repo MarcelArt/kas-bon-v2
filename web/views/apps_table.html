@@ -1,0 +1,36 @@
+{{define "apps_table"}}
+<div id="apps-table-area">
+  <div class="card">
+    <div class="card-content">
+      {{if .Apps}}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Created</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="apps-table-body">
+          {{range .Apps}}
+          {{template "app_row" .}}
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="5" height="5"></rect>
+          <rect x="9" y="2" width="5" height="5"></rect>
+          <rect x="2" y="9" width="5" height="5"></rect>
+          <rect x="9" y="9" width="5" height="5"></rect>
+        </svg>
+        <p>No apps yet. Create your first app to get started.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{template "pagination" .}}
+</div>
+{{end}}

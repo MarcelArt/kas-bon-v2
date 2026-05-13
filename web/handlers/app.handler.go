@@ -18,7 +18,7 @@ func NewAppHandler(appSvc services.IAppService) *AppHandler {
 }
 
 func (h *AppHandler) AppsPage(c fiber.Ctx) error {
-	_, apps := h.appSvc.Read(c)
+	page, apps := h.appSvc.Read(c)
 
 	viewApps := make([]webModels.AppViewModel, len(apps))
 	for i, a := range apps {
@@ -30,13 +30,23 @@ func (h *AppHandler) AppsPage(c fiber.Ctx) error {
 		}
 	}
 
-	return c.Render("apps", webModels.AppsPageData{
+	data := webModels.AppsPageData{
 		PageData: webModels.PageData{
 			Title:      "Apps",
 			ActivePage: "apps",
 		},
 		Apps: viewApps,
-	})
+		Pagination: webModels.NewPaginationData(
+			page.Page, page.Size, page.TotalPages, page.Total,
+			page.First, page.Last, "/apps",
+		),
+	}
+
+	if isHtmx(c) {
+		return c.Render("apps_table", data)
+	}
+
+	return c.Render("apps", data)
 }
 
 func (h *AppHandler) CreateAppForm(c fiber.Ctx) error {

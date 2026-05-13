@@ -726,6 +726,31 @@ a:hover {
   width: auto;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  margin-top: 8px;
+}
+
+.pagination-info {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-controls .disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  text-decoration: none;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);

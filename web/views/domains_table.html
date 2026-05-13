@@ -1,0 +1,39 @@
+{{define "domains_table"}}
+<div id="domains-table-area">
+  <div class="card">
+    <div class="card-content">
+      {{if .Domains}}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Organization</th>
+            <th>Created</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="domains-table-body">
+          {{range .Domains}}
+          {{template "domain_row" .}}
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="4" r="2"></circle>
+          <circle cx="4" cy="12" r="2"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+          <line x1="8" y1="6" x2="4" y2="10"></line>
+          <line x1="8" y1="6" x2="12" y2="10"></line>
+          <line x1="4" y1="12" x2="12" y2="12"></line>
+        </svg>
+        <p>No domains yet. Create your first domain to get started.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{template "pagination" .}}
+</div>
+{{end}}

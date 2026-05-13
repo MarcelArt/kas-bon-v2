@@ -1,0 +1,21 @@
+{{define "pagination"}}
+<div class="pagination">
+  <span class="pagination-info">{{.Pagination.Total}} total &middot; Page {{.Pagination.Page}} of {{.Pagination.TotalPages}}</span>
+  {{if gt .Pagination.TotalPages 1}}
+  <div class="pagination-controls">
+    <a class="btn btn-outline btn-xs{{if .Pagination.First}} disabled{{end}}"
+       hx-get="{{.Pagination.BasePath}}?page=1&amp;size={{.Pagination.Size}}"
+       hx-target="#{{.Pagination.TargetID}}" hx-swap="outerHTML">&laquo;</a>
+    <a class="btn btn-outline btn-xs{{if .Pagination.First}} disabled{{end}}"
+       hx-get="{{.Pagination.BasePath}}?page={{.Pagination.PrevPage}}&amp;size={{.Pagination.Size}}"
+       hx-target="#{{.Pagination.TargetID}}" hx-swap="outerHTML">&lsaquo; Prev</a>
+    <a class="btn btn-outline btn-xs{{if .Pagination.Last}} disabled{{end}}"
+       hx-get="{{.Pagination.BasePath}}?page={{.Pagination.NextPage}}&amp;size={{.Pagination.Size}}"
+       hx-target="#{{.Pagination.TargetID}}" hx-swap="outerHTML">Next &rsaquo;</a>
+    <a class="btn btn-outline btn-xs{{if .Pagination.Last}} disabled{{end}}"
+       hx-get="{{.Pagination.BasePath}}?page={{.Pagination.TotalPages}}&amp;size={{.Pagination.Size}}"
+       hx-target="#{{.Pagination.TargetID}}" hx-swap="outerHTML">&raquo;</a>
+  </div>
+  {{end}}
+</div>
+{{end}}

@@ -1,0 +1,76 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} - KAS Bon</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono/index.css">
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+  <div class="app-shell" x-data="{ sidebarOpen: window.innerWidth >= 768 }">
+    <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen, 'sidebar-closed': !sidebarOpen }">
+      <div class="sidebar-header">
+        <span class="sidebar-brand" x-show="sidebarOpen" x-cloak>KAS BON</span>
+        <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen" :title="sidebarOpen ? 'Collapse' : 'Expand'">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="2" x2="13" y2="2"></line>
+            <line x1="3" y1="6" x2="13" y2="6"></line>
+            <line x1="3" y1="10" x2="13" y2="10"></line>
+            <line x1="3" y1="14" x2="13" y2="14"></line>
+            <circle cx="6" cy="6" r="1.5" fill="currentColor" stroke="none"></circle>
+            <circle cx="6" cy="10" r="1.5" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-group">
+          <span class="sidebar-group-label" x-show="sidebarOpen" x-cloak>Menu</span>
+          <a href="/apps" class="sidebar-link{{if eq .ActivePage "apps"}} active{{end}}">
+            <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="5" height="5"></rect>
+              <rect x="9" y="2" width="5" height="5"></rect>
+              <rect x="2" y="9" width="5" height="5"></rect>
+              <rect x="9" y="9" width="5" height="5"></rect>
+            </svg>
+            <span x-show="sidebarOpen" x-cloak>Apps</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <form method="POST" action="/auth/logout">
+          <button type="submit" class="sidebar-link sidebar-link-button">
+            <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"></path>
+              <polyline points="10 11 13 8 10 5"></polyline>
+              <line x1="13" y1="8" x2="6" y2="8"></line>
+            </svg>
+            <span x-show="sidebarOpen" x-cloak>Sign out</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <button class="mobile-menu-btn" @click="sidebarOpen = !sidebarOpen">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <line x1="2" y1="4" x2="14" y2="4"></line>
+            <line x1="2" y1="8" x2="14" y2="8"></line>
+            <line x1="2" y1="12" x2="14" y2="12"></line>
+          </svg>
+        </button>
+        <h1 class="page-title">{{.Title}}</h1>
+      </div>
+
+      {{template "content" .}}
+    </main>
+  </div>
+</body>
+</html>
+{{end}}

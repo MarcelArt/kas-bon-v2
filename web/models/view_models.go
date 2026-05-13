@@ -1,7 +1,22 @@
 package models
 
+import "time"
+
 type PageData struct {
-	Title string
+	Title      string
+	ActivePage string
+}
+
+type AppViewModel struct {
+	ID          uint
+	Name        string
+	Description string
+	CreatedAt   time.Time
+}
+
+type AppsPageData struct {
+	PageData
+	Apps []AppViewModel
 }
 
 type LoginForm struct {

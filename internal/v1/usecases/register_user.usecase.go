@@ -62,10 +62,10 @@ func (u *RegisterUserUsecase) Execute() (uint, error) {
 		return 0, fmt.Errorf("failed creating default role: %w", err)
 	}
 
-	permission := fmt.Sprintf("%s#%s", enums.ResourceAll, enums.PermissionFull)
-	if _, err := u.pRepo.Create(models.PermissionInput{Name: permission, AppID: enums.AppID}); err != nil {
-		return 0, fmt.Errorf("failed creating default permission: %w", err)
-	}
+	// permission := fmt.Sprintf("%s#%s", enums.ResourceAll, enums.PermissionFull)
+	// if _, err := u.pRepo.Create(models.PermissionInput{Name: permission, AppID: enums.AppID}); err != nil {
+	// 	return 0, fmt.Errorf("failed creating default permission: %w", err)
+	// }
 
 	return u.uRepo.Create(user)
 }

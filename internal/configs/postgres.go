@@ -48,6 +48,7 @@ func MigrateDB() error {
 	fmt.Println("Database Migrated")
 
 	seedApp()
+	seedPermissions()
 
 	return err
 }
@@ -70,4 +71,33 @@ func seedApp() {
 	DB.Create(&models.App{
 		Name: enums.AppName,
 	})
+}
+
+func seedPermissions() {
+	permissions := []models.Permission{
+		{Name: "all#fullAccess", Description: "Super user", AppID: enums.AppID},
+		{Name: "users#read", Description: "Read users", AppID: enums.AppID},
+		{Name: "users#update", Description: "Update users", AppID: enums.AppID},
+		{Name: "users#delete", Description: "Delete users", AppID: enums.AppID},
+		{Name: "roles#read", Description: "Read roles", AppID: enums.AppID},
+		{Name: "roles#create", Description: "Create roles", AppID: enums.AppID},
+		{Name: "roles#update", Description: "Update roles", AppID: enums.AppID},
+		{Name: "roles#delete", Description: "Delete roles", AppID: enums.AppID},
+		{Name: "permissions#read", Description: "Read permissions", AppID: enums.AppID},
+		{Name: "permissions#create", Description: "Create permissions", AppID: enums.AppID},
+		{Name: "permissions#update", Description: "Update permissions", AppID: enums.AppID},
+		{Name: "permissions#delete", Description: "Delete permissions", AppID: enums.AppID},
+		{Name: "apps#read", Description: "Read apps", AppID: enums.AppID},
+		{Name: "apps#create", Description: "Create apps", AppID: enums.AppID},
+		{Name: "apps#update", Description: "Update apps", AppID: enums.AppID},
+		{Name: "apps#delete", Description: "Delete apps", AppID: enums.AppID},
+		{Name: "domains#read", Description: "Read domains", AppID: enums.AppID},
+		{Name: "domains#create", Description: "Create domains", AppID: enums.AppID},
+		{Name: "domains#update", Description: "Update domains", AppID: enums.AppID},
+		{Name: "domains#delete", Description: "Delete domains", AppID: enums.AppID},
+	}
+
+	for _, p := range permissions {
+		DB.FirstOrCreate(&p, models.Permission{Name: p.Name})
+	}
 }

@@ -6,7 +6,7 @@ const permissionTableName = "permissions"
 
 type Permission struct {
 	gorm.Model
-	Name        string `gorm:"not null;unique" json:"name"`
+	Name        string `gorm:"not null" json:"name"`
 	Description string `json:"description"`
 
 	AppID uint `gorm:"not null" json:"appId"`
@@ -16,7 +16,7 @@ type Permission struct {
 
 type PermissionInput struct {
 	Input
-	Name        string `gorm:"not null;unique" json:"name"`
+	Name        string `gorm:"not null" json:"name"`
 	Description string `json:"description"`
 
 	AppID uint `gorm:"not null" json:"appId"`

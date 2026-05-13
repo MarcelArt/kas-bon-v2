@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type PageData struct {
 	Title      string
@@ -16,21 +19,26 @@ type PaginationData struct {
 	Last       bool
 	PrevPage   int64
 	NextPage   int64
+	LastPage   int64
 	BasePath   string
 	TargetID   string
 }
 
 func NewPaginationData(page, size, totalPages, total int64, first, last bool, basePath string) PaginationData {
 	prev := page - 1
-	if prev < 1 {
-		prev = 1
+	if prev < 0 {
+		prev = 0
+	}
+	maxPage := totalPages - 1
+	if maxPage < 0 {
+		maxPage = 0
 	}
 	next := page + 1
-	if next > totalPages {
-		next = totalPages
+	if next > maxPage {
+		next = maxPage
 	}
 	return PaginationData{
-		Page:       page,
+		Page:       page + 1,
 		Size:       size,
 		TotalPages: totalPages,
 		Total:      total,
@@ -38,8 +46,9 @@ func NewPaginationData(page, size, totalPages, total int64, first, last bool, ba
 		Last:       last,
 		PrevPage:   prev,
 		NextPage:   next,
+		LastPage:   maxPage,
 		BasePath:   basePath,
-		TargetID:   basePath[1:] + "-table-area",
+		TargetID:   strings.ReplaceAll(basePath[1:], "/", "-") + "-table-area",
 	}
 }
 

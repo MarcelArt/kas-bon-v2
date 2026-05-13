@@ -43,7 +43,7 @@ func (h *AppDetailHandler) AppDetailPage(c fiber.Ctx) error {
 		}
 	}
 
-	basePath := "/apps/" + appID + "/permissions"
+	basePath := "/apps/" + appID
 	data := webModels.AppDetailPageData{
 		PageData: webModels.PageData{
 			Title:      app.Name,

@@ -10,8 +10,8 @@ import (
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v3"
-	"github.com/gofiber/fiber/v3"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
+	"github.com/gofiber/fiber/v3"
 	"github.com/morkid/paginate"
 )
 

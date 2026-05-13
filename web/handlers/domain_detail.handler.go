@@ -44,7 +44,7 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 		}
 	}
 
-	basePath := "/domains/" + domainID + "/roles"
+	basePath := "/domains/" + domainID
 	data := webModels.DomainDetailPageData{
 		PageData: webModels.PageData{
 			Title:      domain.Name,

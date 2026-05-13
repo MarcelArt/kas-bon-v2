@@ -1,6 +1,6 @@
 package enums
 
 const (
-	AppName = "Entschuldigung"
+	AppName = "Kas Bon"
 	AppID   = 1
 )

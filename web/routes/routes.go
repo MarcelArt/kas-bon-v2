@@ -15,6 +15,8 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 
 	authH := handlers.NewAuthHandler(userSvc)
 
+	app.Use("/login", middlewares.GuestOnly())
+	app.Use("/register", middlewares.GuestOnly())
 	app.Get("/login", authH.LoginPage)
 	app.Get("/register", authH.RegisterPage)
 
@@ -22,12 +24,11 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	auth.Post("/login", authH.HandleLogin)
 	auth.Post("/register", authH.HandleRegister)
 	auth.Post("/logout", func(c fiber.Ctx) error {
-		c.ClearCookie("access_token")
-		c.ClearCookie("refresh_token")
+		middlewares.ClearTokenCookies(c)
 		return c.Redirect().To("/login")
 	})
 
-	protected := app.Group("/", middlewares.CookieAuth())
+	protected := app.Group("/", middlewares.CookieAuth(userSvc))
 
 	appSvc := services.NewAppService(repositories.NewAppRepo(configs.DB))
 	appH := handlers.NewAppHandler(appSvc)

@@ -657,13 +657,13 @@ a:hover {
   background: transparent;
   border: none;
   padding: 0;
-  max-width: 440px;
+  max-width: 480px;
   width: 100%;
+  margin: auto;
 }
 
 .dialog::backdrop {
-  background-color: var(--background);
-  opacity: 0.8;
+  background-color: oklch(0.141 0.005 285.823 / 80%);
 }
 
 .dialog-content {
@@ -671,6 +671,7 @@ a:hover {
   color: var(--card-foreground);
   border: 1px solid var(--border);
   padding: 24px;
+  width: 100%;
 }
 
 .dialog-header {

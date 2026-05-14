@@ -1,0 +1,39 @@
+{{define "domain_users_table"}}
+<div id="domain-users-table-area">
+  <div class="card">
+    <div class="card-content">
+      {{if .Users}}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Users}}
+          <tr>
+            <td class="cell-name">{{.Username}}</td>
+            <td class="cell-desc">{{.Email}}</td>
+            <td><span class="badge">{{.RoleName}}</span></td>
+            <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1z"></path>
+          <path d="M8 5v3"></path>
+          <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none"></circle>
+        </svg>
+        <p>No users in this domain yet.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

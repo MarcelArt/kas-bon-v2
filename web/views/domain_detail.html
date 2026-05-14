@@ -3,7 +3,7 @@
 {{end}}
 
 {{define "domain_detail_content"}}
-<div class="domain-detail-page">
+<div class="domain-detail-page" x-data="{ activeTab: 'roles' }">
   <a href="/domains" class="breadcrumb">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="10 2 4 8 10 14"></polyline>
@@ -18,20 +18,50 @@
     </div>
   </div>
 
-  <div class="detail-section">
-    <div class="section-header">
-      <h3 class="section-title">Roles</h3>
-      <button class="btn btn-primary" hx-get="/domains/{{.Domain.ID}}/roles/new" hx-target="#role-dialog-content" hx-swap="innerHTML"
-              @click="document.getElementById('role-dialog').showModal()">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="8" y1="2" x2="8" y2="14"></line>
-          <line x1="2" y1="8" x2="14" y2="8"></line>
+  <div class="tabs">
+    <div class="tab-list">
+      <button class="tab" :class="{ 'tab-active': activeTab === 'roles' }" @click="activeTab = 'roles'">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1L2 4v4c0 3.5 2.6 6.8 6 7.5 3.4-.7 6-4 6-7.5V4L8 1z"></path>
         </svg>
-        New Role
+        Roles
+      </button>
+      <button class="tab" :class="{ 'tab-active': activeTab === 'users' }" @click="activeTab = 'users'">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="4" r="2.5"></circle>
+          <path d="M3 14v-1c0-2 2.2-3.5 5-3.5s5 1.5 5 3.5v1"></path>
+        </svg>
+        Users
       </button>
     </div>
 
-    {{template "domain_roles_table" .}}
+    <div x-show="activeTab === 'roles'" x-cloak>
+      <div class="section-header">
+        <span class="section-desc">Manage roles for this domain</span>
+        <button class="btn btn-primary" hx-get="/domains/{{.Domain.ID}}/roles/new" hx-target="#role-dialog-content" hx-swap="innerHTML"
+                @click="document.getElementById('role-dialog').showModal()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="8" y1="2" x2="8" y2="14"></line>
+            <line x1="2" y1="8" x2="14" y2="8"></line>
+          </svg>
+          New Role
+        </button>
+      </div>
+      {{template "domain_roles_table" .}}
+    </div>
+    <div x-show="activeTab === 'users'" x-cloak>
+      <div class="section-header">
+        <span class="section-desc">Manage users in this domain</span>
+        <button class="btn btn-primary" disabled>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="8" y1="2" x2="8" y2="14"></line>
+            <line x1="2" y1="8" x2="14" y2="8"></line>
+          </svg>
+          Invite User
+        </button>
+      </div>
+      {{template "domain_users_table" .}}
+    </div>
   </div>
 
   <dialog id="role-dialog" class="dialog">

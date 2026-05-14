@@ -79,10 +79,18 @@ type DomainsPageData struct {
 	Pagination PaginationData
 }
 
+type DomainUserViewModel struct {
+	Username  string
+	Email     string
+	RoleName  string
+	CreatedAt time.Time
+}
+
 type DomainDetailPageData struct {
 	PageData
 	Domain     DomainViewModel
 	Roles      []RoleViewModel
+	Users      []DomainUserViewModel
 	Pagination PaginationData
 }
 

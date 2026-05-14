@@ -44,6 +44,21 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 		}
 	}
 
+	domainUsers, _ := h.domainSvc.GetUsers(domainID)
+	viewUsers := make([]webModels.DomainUserViewModel, len(domainUsers))
+	for i, du := range domainUsers {
+		roleName := ""
+		if len(du.Policy) > 1 {
+			roleName = du.Policy[1]
+		}
+		viewUsers[i] = webModels.DomainUserViewModel{
+			Username:  du.User.Username,
+			Email:     du.User.Email,
+			RoleName:  roleName,
+			CreatedAt: du.User.CreatedAt,
+		}
+	}
+
 	basePath := "/domains/" + domainID
 	data := webModels.DomainDetailPageData{
 		PageData: webModels.PageData{
@@ -52,6 +67,7 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 		},
 		Domain: viewDomain,
 		Roles:  viewRoles,
+		Users:  viewUsers,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
 			page.First, page.Last, basePath,

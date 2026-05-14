@@ -25,6 +25,7 @@ type IUserService interface {
 	GetPermissions(id any, domainID any) ([][]string, error)
 	AssignRoles(id any, domainID any, roleIDs []uint) ([]string, error)
 	GetOrganizations(id any) ([]models.Domain, error)
+	GetAll() ([]models.User, error)
 }
 
 type UserService struct {
@@ -183,4 +184,8 @@ func (s *UserService) GetOrganizations(id any) ([]models.Domain, error) {
 	}
 
 	return domains, nil
+}
+
+func (s *UserService) GetAll() ([]models.User, error) {
+	return s.repo.GetAll()
 }

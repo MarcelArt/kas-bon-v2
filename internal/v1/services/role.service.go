@@ -20,6 +20,7 @@ type IRoleService interface {
 	GetByID(id any) (models.Role, error)
 	GetPermissions(id any) (models.GetRolePermissionsResponse, error)
 	AssignPermissions(roleID any, appID any, permissionIDs []uint) ([]string, error)
+	GetByDomainID(domainID any) ([]models.Role, error)
 }
 
 type RoleService struct {
@@ -117,4 +118,8 @@ func (s *RoleService) AssignPermissions(roleID any, appID any, permissionIDs []u
 	}
 
 	return permissions, nil
+}
+
+func (s *RoleService) GetByDomainID(domainID any) ([]models.Role, error) {
+	return s.repo.GetByDomainID(domainID)
 }

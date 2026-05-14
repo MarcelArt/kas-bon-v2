@@ -167,3 +167,20 @@ type OrgSelectPageData struct {
 	PageData
 	Organizations []OrgViewModel
 }
+
+type InviteUserFormData struct {
+	DomainID uint
+	Users    []UserOption
+	Roles    []RoleOption
+}
+
+type UserOption struct {
+	ID       uint
+	Username string
+	Email    string
+}
+
+type RoleOption struct {
+	ID   uint
+	Name string
+}

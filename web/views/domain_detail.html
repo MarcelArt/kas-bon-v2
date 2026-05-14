@@ -54,7 +54,8 @@
     <div x-show="activeTab === 'users'" x-cloak>
       <div class="section-header">
         <span class="section-desc">Manage users in this domain</span>
-        <button class="btn btn-primary" disabled>
+        <button class="btn btn-primary" hx-get="/domains/{{.Domain.ID}}/invitations/new" hx-target="#invite-dialog-content" hx-swap="innerHTML"
+                @click="document.getElementById('invite-dialog').showModal()">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <line x1="8" y1="2" x2="8" y2="14"></line>
             <line x1="2" y1="8" x2="14" y2="8"></line>
@@ -68,6 +69,11 @@
 
   <dialog id="role-dialog" class="dialog">
     <div class="dialog-content" id="role-dialog-content">
+    </div>
+  </dialog>
+
+  <dialog id="invite-dialog" class="dialog">
+    <div class="dialog-content" id="invite-dialog-content">
     </div>
   </dialog>
 </div>

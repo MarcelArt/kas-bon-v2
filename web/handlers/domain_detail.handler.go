@@ -8,12 +8,14 @@ import (
 )
 
 type DomainDetailHandler struct {
-	domainSvc services.IDomainService
-	roleSvc   services.IRoleService
+	domainSvc    services.IDomainService
+	roleSvc      services.IRoleService
+	userSvc      services.IUserService
+	invitationSvc services.IUserInvitationService
 }
 
-func NewDomainDetailHandler(domainSvc services.IDomainService, roleSvc services.IRoleService) *DomainDetailHandler {
-	return &DomainDetailHandler{domainSvc: domainSvc, roleSvc: roleSvc}
+func NewDomainDetailHandler(domainSvc services.IDomainService, roleSvc services.IRoleService, userSvc services.IUserService, invitationSvc services.IUserInvitationService) *DomainDetailHandler {
+	return &DomainDetailHandler{domainSvc: domainSvc, roleSvc: roleSvc, userSvc: userSvc, invitationSvc: invitationSvc}
 }
 
 func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
@@ -158,6 +160,54 @@ func (h *DomainDetailHandler) DeleteRole(c fiber.Ctx) error {
 	}
 
 	return c.Redirect().To("/domains")
+}
+
+func (h *DomainDetailHandler) InviteUserForm(c fiber.Ctx) error {
+	domainID := c.Params("id")
+
+	users, err := h.userSvc.GetAll()
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	roles, err := h.roleSvc.GetByDomainID(domainID)
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	userOpts := make([]webModels.UserOption, len(users))
+	for i, u := range users {
+		userOpts[i] = webModels.UserOption{ID: u.ID, Username: u.Username, Email: u.Email}
+	}
+
+	roleOpts := make([]webModels.RoleOption, len(roles))
+	for i, r := range roles {
+		roleOpts[i] = webModels.RoleOption{ID: r.ID, Name: r.Name}
+	}
+
+	data := webModels.InviteUserFormData{
+		DomainID: parseUint(domainID),
+		Users:    userOpts,
+		Roles:    roleOpts,
+	}
+
+	return c.Render("invite_user_form", data)
+}
+
+func (h *DomainDetailHandler) CreateInvitation(c fiber.Ctx) error {
+	domainID := c.Params("id")
+
+	var input models.UserInvitationInput
+	if err := c.Bind().Form(&input); err != nil {
+		return c.Redirect().To("/domains/" + domainID)
+	}
+	input.DomainID = parseUint(domainID)
+
+	if _, err := h.invitationSvc.Create(input); err != nil {
+		return c.Redirect().To("/domains/" + domainID)
+	}
+
+	return c.Redirect().To("/domains/" + domainID)
 }
 
 func (h *DomainDetailHandler) renderRoleRow(c fiber.Ctx, id any) error {

@@ -1,0 +1,32 @@
+{{define "invite_user_form"}}
+<div class="dialog-header">
+  <h2 class="dialog-title">Invite User</h2>
+  <button class="dialog-close" onclick="document.getElementById('invite-dialog').close()">&times;</button>
+</div>
+<form hx-post="/domains/{{.DomainID}}/invitations" hx-swap="none"
+      hx-on::after-request="document.getElementById('invite-dialog').close()">
+  <input type="hidden" name="domainId" value="{{.DomainID}}">
+  <div class="form-group">
+    <label class="form-label" for="invite-user">User</label>
+    <select class="form-input" id="invite-user" name="userId" required>
+      <option value="" disabled selected>Select a user</option>
+      {{range .Users}}
+      <option value="{{.ID}}">{{.Username}} ({{.Email}})</option>
+      {{end}}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="invite-role">Role</label>
+    <select class="form-input" id="invite-role" name="roleId" required>
+      <option value="" disabled selected>Select a role</option>
+      {{range .Roles}}
+      <option value="{{.ID}}">{{.Name}}</option>
+      {{end}}
+    </select>
+  </div>
+  <div class="dialog-footer">
+    <button type="submit" class="btn btn-primary">Send Invitation</button>
+    <button type="button" class="btn btn-outline" onclick="document.getElementById('invite-dialog').close()">Cancel</button>
+  </div>
+</form>
+{{end}}

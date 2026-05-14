@@ -15,6 +15,7 @@ type IUserRepo interface {
 	GetByID(id any) (models.User, error)
 	GetByUsernameOrEmail(usernameOrEmail string) (models.User, error)
 	GetByUsernames(usernames []string) ([]models.User, error)
+	GetAll() ([]models.User, error)
 }
 
 type UserRepo struct {
@@ -69,5 +70,11 @@ func (r *UserRepo) GetByUsernameOrEmail(usernameOrEmail string) (models.User, er
 func (r *UserRepo) GetByUsernames(usernames []string) ([]models.User, error) {
 	var users []models.User
 	err := r.db.Where("username in ?", usernames).Find(&users).Error
+	return users, err
+}
+
+func (r *UserRepo) GetAll() ([]models.User, error) {
+	var users []models.User
+	err := r.db.Find(&users).Error
 	return users, err
 }

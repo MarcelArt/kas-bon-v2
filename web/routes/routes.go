@@ -25,6 +25,7 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 		"domains#read", "domains#create", "domains#update", "domains#delete",
 		"roles#read", "roles#create", "roles#update", "roles#delete",
 		"permissions#read", "permissions#create", "permissions#update", "permissions#delete",
+		"userInvitations#read", "userInvitations#create", "userInvitations#update", "userInvitations#delete",
 	}
 
 	authH := handlers.NewAuthHandler(userSvc)
@@ -92,10 +93,12 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 		e,
 	)
 
-	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc)
+	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc, userSvc, services.NewUserInvitationService(repositories.NewUserInvitationRepo(configs.DB)))
 	protected.Get("/domains/:id", authz.HasPermission("roles#read"), domainDetailH.DomainDetailPage)
 	protected.Get("/domains/:id/roles/new", authz.HasPermission("roles#create"), domainDetailH.CreateRoleForm)
 	protected.Post("/domains/:id/roles", authz.HasPermission("roles#create"), domainDetailH.CreateRole)
+	protected.Get("/domains/:id/invitations/new", authz.HasPermission("userInvitations#create"), domainDetailH.InviteUserForm)
+	protected.Post("/domains/:id/invitations", authz.HasPermission("userInvitations#create"), domainDetailH.CreateInvitation)
 
 	protected.Get("/roles/:id/edit", authz.HasPermission("roles#update"), domainDetailH.EditRoleForm)
 	protected.Put("/roles/:id", authz.HasPermission("roles#update"), domainDetailH.UpdateRole)

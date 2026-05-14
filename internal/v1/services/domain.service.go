@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
@@ -17,7 +16,7 @@ type IDomainService interface {
 	Update(id any, domain models.Domain) error
 	Delete(id any) error
 	GetByID(id any) (models.Domain, error)
-	GetUsers(id any) ([]models.User, error)
+	GetUsers(id any) ([]models.DomainUser, error)
 }
 
 type DomainService struct {
@@ -54,17 +53,29 @@ func (s *DomainService) GetByID(id any) (models.Domain, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *DomainService) GetUsers(id any) ([]models.User, error) {
+func (s *DomainService) GetUsers(id any) ([]models.DomainUser, error) {
+	res := make([]models.DomainUser, 0)
 	domain, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
-	log.Println("e :>> ", s.e)
-	usernames, err := s.e.GetAllUsersByDomain(domain.Name)
+	policies, err := s.e.GetFilteredGroupingPolicy(0, "", "", domain.Name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user lists from policy")
+		return res, fmt.Errorf("failed to get user lists from policy: %w", err)
 	}
 
-	return s.uRepo.GetByUsernames(usernames)
+	for _, policy := range policies {
+		user, err := s.uRepo.GetByUsernameOrEmail(policy[0])
+		if err != nil {
+			continue
+		}
+
+		res = append(res, models.DomainUser{
+			User:   user,
+			Policy: policy,
+		})
+	}
+
+	return res, nil
 }

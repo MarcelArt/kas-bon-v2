@@ -29,3 +29,8 @@ type DomainInput struct {
 func (DomainInput) TableName() string {
 	return domainTableName
 }
+
+type DomainUser struct {
+	User   User     `json:"user"`
+	Policy []string `json:"policy"`
+}

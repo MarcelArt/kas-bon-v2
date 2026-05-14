@@ -1,6 +1,6 @@
 {{define "app_row"}}
 <tr id="app-row-{{.ID}}">
-  <td class="cell-name"><a href="/apps/{{.ID}}">{{.Name}}</a></td>
+  <td class="cell-name"><a href="/apps/{{.ID}}" hx-get="/apps/{{.ID}}" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML" hx-push-url="true">{{.Name}}</a></td>
   <td class="cell-desc">{{if .Description}}{{.Description}}{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
   <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
   <td class="col-actions">

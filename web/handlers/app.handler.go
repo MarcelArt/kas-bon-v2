@@ -139,7 +139,7 @@ func (h *AppHandler) renderAppRow(c fiber.Ctx, id any) error {
 }
 
 func isHtmx(c fiber.Ctx) bool {
-	return c.Get("HX-Request") == "true"
+	return c.Get("HX-Request") == "true" && c.Get("HX-Boosted") != "true" && c.Get("HX-Target") != "main-content"
 }
 
 func renderWebAlert(c fiber.Ctx, alertType, message string) error {

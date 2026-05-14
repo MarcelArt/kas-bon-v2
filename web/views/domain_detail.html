@@ -4,7 +4,7 @@
 
 {{define "domain_detail_content"}}
 <div class="domain-detail-page" x-data="{ activeTab: 'roles' }">
-  <a href="/domains" class="breadcrumb">
+  <a href="/domains" class="breadcrumb" hx-get="/domains" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML" hx-push-url="true">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="10 2 4 8 10 14"></polyline>
     </svg>

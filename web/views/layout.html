@@ -27,7 +27,7 @@
         </button>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML">
         <div class="sidebar-group">
           <span class="sidebar-group-label" x-show="sidebarOpen" x-cloak>Menu</span>
           <a href="/apps" class="sidebar-link{{if eq .ActivePage "apps"}} active{{end}}">
@@ -53,7 +53,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <form method="POST" action="/auth/logout">
+        <form method="POST" action="/auth/logout" hx-boost="false">
           <button type="submit" class="sidebar-link sidebar-link-button">
             <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"></path>
@@ -66,7 +66,7 @@
       </div>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content" id="main-content">
       <div class="page-header">
         <button class="mobile-menu-btn" @click="sidebarOpen = !sidebarOpen">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
@@ -85,6 +85,23 @@
       {{if eq .ActivePage "role_permissions"}}{{template "role_permissions_content" .}}{{end}}
     </main>
   </div>
+  <script>
+    var _lastPath = window.location.pathname;
+    document.addEventListener('htmx:afterSettle', function() {
+      if (window.location.pathname !== _lastPath) {
+        _lastPath = window.location.pathname;
+        window.scrollTo(0, 0);
+        var path = window.location.pathname;
+        document.querySelectorAll('.sidebar-link').forEach(function(link) {
+          link.classList.remove('active');
+          var href = link.getAttribute('href');
+          if (href && href !== '/' && (path === href || path.startsWith(href + '/'))) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  </script>
 </body>
 </html>
 {{end}}

@@ -15,9 +15,9 @@ func SetupUserInvitationRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddlew
 	userInvitations.Get("/", middlewares.Authn(), h.Read)
 	userInvitations.Get("/:id", middlewares.Authn(), h.GetByID)
 
-	userInvitations.Post("/", middlewares.Authn(), authz.HasPermission("user-invitations#create"), h.Create)
+	userInvitations.Post("/", middlewares.Authn(), authz.HasPermission("userInvitations#create"), h.Create)
 
-	userInvitations.Put("/:id", middlewares.Authn(), authz.HasPermission("user-invitations#update"), h.Update)
+	userInvitations.Put("/:id", middlewares.Authn(), authz.HasPermission("userInvitations#update"), h.Update)
 
-	userInvitations.Delete("/:id", middlewares.Authn(), authz.HasPermission("user-invitations#delete"), h.Delete)
+	userInvitations.Delete("/:id", middlewares.Authn(), authz.HasPermission("userInvitations#delete"), h.Delete)
 }

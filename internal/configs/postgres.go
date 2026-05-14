@@ -75,6 +75,7 @@ func seedApp() {
 }
 
 func seedPermissions() {
+	// Need to be written in camelCase#camelCase format
 	permissions := []models.Permission{
 		{Name: "all#fullAccess", Description: "Super user", AppID: enums.AppID},
 		{Name: "users#read", Description: "Read users", AppID: enums.AppID},
@@ -96,10 +97,10 @@ func seedPermissions() {
 		{Name: "domains#create", Description: "Create domains", AppID: enums.AppID},
 		{Name: "domains#update", Description: "Update domains", AppID: enums.AppID},
 		{Name: "domains#delete", Description: "Delete domains", AppID: enums.AppID},
-		{Name: "user-invitations#read", Description: "Read user invitations", AppID: enums.AppID},
-		{Name: "user-invitations#create", Description: "Create user invitations", AppID: enums.AppID},
-		{Name: "user-invitations#update", Description: "Update user invitations", AppID: enums.AppID},
-		{Name: "user-invitations#delete", Description: "Delete user invitations", AppID: enums.AppID},
+		{Name: "userInvitations#read", Description: "Read user invitations", AppID: enums.AppID},
+		{Name: "userInvitations#create", Description: "Create user invitations", AppID: enums.AppID},
+		{Name: "userInvitations#update", Description: "Update user invitations", AppID: enums.AppID},
+		{Name: "userInvitations#delete", Description: "Delete user invitations", AppID: enums.AppID},
 	}
 
 	for _, p := range permissions {

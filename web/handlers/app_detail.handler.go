@@ -25,6 +25,7 @@ func (h *AppDetailHandler) AppDetailPage(c fiber.Ctx) error {
 	}
 
 	page, permissions := h.permSvc.Read(c, appID)
+	perms := getPermissions(c)
 
 	viewApp := webModels.AppViewModel{
 		ID:          app.ID,
@@ -40,17 +41,16 @@ func (h *AppDetailHandler) AppDetailPage(c fiber.Ctx) error {
 			Name:        p.Name,
 			Description: p.Description,
 			CreatedAt:   p.CreatedAt,
+			CanUpdate:   perms["permissions#update"],
+			CanDelete:   perms["permissions#delete"],
 		}
 	}
 
 	basePath := "/apps/" + appID
 	data := webModels.AppDetailPageData{
-		PageData: webModels.PageData{
-			Title:      app.Name,
-			ActivePage: "app_detail",
-		},
-		App:         viewApp,
-		Permissions: viewPerms,
+		PageData:       newPageData(c, app.Name, "app_detail"),
+		App:            viewApp,
+		PermissionList: viewPerms,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
 			page.First, page.Last, basePath,
@@ -148,11 +148,14 @@ func (h *AppDetailHandler) renderPermissionRow(c fiber.Ctx, id any) error {
 		return c.Redirect().To("/apps")
 	}
 
+	p := getPermissions(c)
 	viewPerm := webModels.PermissionViewModel{
 		ID:          perm.ID,
 		Name:        perm.Name,
 		Description: perm.Description,
 		CreatedAt:   perm.CreatedAt,
+		CanUpdate:   p["permissions#update"],
+		CanDelete:   p["permissions#delete"],
 	}
 
 	return c.Render("permission_row", viewPerm)

@@ -69,7 +69,7 @@ to quickly create a Cobra application.`,
 			repositories.NewRoleRepo(configs.DB),
 			e,
 		)
-		routes.SetupWebRoutes(app, userSvc)
+		routes.SetupWebRoutes(app, userSvc, e)
 
 		port := fmt.Sprintf(":%s", configs.Env.PORT)
 		log.Printf("Listening on port %s", configs.Env.PORT)

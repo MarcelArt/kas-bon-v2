@@ -35,12 +35,16 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 	}
 
 	viewRoles := make([]webModels.RoleViewModel, len(roles))
+	perms := getPermissions(c)
 	for i, r := range roles {
 		viewRoles[i] = webModels.RoleViewModel{
-			ID:          r.ID,
-			Name:        r.Name,
-			Description: r.Description,
-			CreatedAt:   r.CreatedAt,
+			ID:                 r.ID,
+			Name:               r.Name,
+			Description:        r.Description,
+			CreatedAt:          r.CreatedAt,
+			CanUpdate:          perms["roles#update"],
+			CanDelete:          perms["roles#delete"],
+			CanReadPermissions: perms["roles#read"],
 		}
 	}
 
@@ -61,10 +65,7 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 
 	basePath := "/domains/" + domainID
 	data := webModels.DomainDetailPageData{
-		PageData: webModels.PageData{
-			Title:      domain.Name,
-			ActivePage: "domain_detail",
-		},
+		PageData:   newPageData(c, domain.Name, "domain_detail"),
 		Domain: viewDomain,
 		Roles:  viewRoles,
 		Users:  viewUsers,
@@ -165,11 +166,15 @@ func (h *DomainDetailHandler) renderRoleRow(c fiber.Ctx, id any) error {
 		return c.Redirect().To("/domains")
 	}
 
+	perms := getPermissions(c)
 	viewRole := webModels.RoleViewModel{
-		ID:          role.ID,
-		Name:        role.Name,
-		Description: role.Description,
-		CreatedAt:   role.CreatedAt,
+		ID:                 role.ID,
+		Name:               role.Name,
+		Description:        role.Description,
+		CreatedAt:          role.CreatedAt,
+		CanUpdate:          perms["roles#update"],
+		CanDelete:          perms["roles#delete"],
+		CanReadPermissions: perms["roles#read"],
 	}
 
 	return c.Render("role_row", viewRole)

@@ -21,6 +21,7 @@
   <div class="detail-section">
     <div class="section-header">
       <h3 class="section-title">Permissions</h3>
+      {{if index .Permissions "permissions#create"}}
       <button class="btn btn-primary" hx-get="/apps/{{.App.ID}}/permissions/new" hx-target="#permission-dialog-content" hx-swap="innerHTML"
               @click="document.getElementById('permission-dialog').showModal()">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -29,6 +30,7 @@
         </svg>
         New Permission
       </button>
+      {{end}}
     </div>
 
     {{template "app_permissions_table" .}}

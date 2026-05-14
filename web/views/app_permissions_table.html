@@ -2,7 +2,7 @@
 <div id="{{.Pagination.TargetID}}">
   <div class="card">
     <div class="card-content">
-      {{if .Permissions}}
+      {{if .PermissionList}}
       <table class="data-table">
         <thead>
           <tr>
@@ -13,7 +13,7 @@
           </tr>
         </thead>
         <tbody id="apps-permissions-table-body">
-          {{range .Permissions}}
+          {{range .PermissionList}}
           {{template "permission_row" .}}
           {{end}}
         </tbody>

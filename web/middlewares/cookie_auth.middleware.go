@@ -73,6 +73,17 @@ func CookieAuth(userSvc services.IUserService) fiber.Handler {
 	}
 }
 
+func RequireContext() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if c.Cookies("current_app_id") == "" || c.Cookies("current_domain_id") == "" {
+			ClearTokenCookies(c)
+			ClearContextCookies(c)
+			return c.Redirect().To("/login")
+		}
+		return c.Next()
+	}
+}
+
 func GuestOnly() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
@@ -83,7 +94,7 @@ func GuestOnly() fiber.Handler {
 				return []byte(configs.Env.JwtSecret), nil
 			})
 			if err == nil && token.Valid {
-				return c.Redirect().To("/apps")
+				return c.Redirect().To("/select-org")
 			}
 		}
 
@@ -92,7 +103,7 @@ func GuestOnly() fiber.Handler {
 				return []byte(configs.Env.JwtSecret), nil
 			})
 			if err == nil && rt.Valid {
-				return c.Redirect().To("/apps")
+				return c.Redirect().To("/select-org")
 			}
 		}
 
@@ -112,6 +123,27 @@ func ClearTokenCookies(c fiber.Ctx) {
 	})
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
+		Value:    "",
+		MaxAge:   -1,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		Path:     "/",
+	})
+}
+
+func ClearContextCookies(c fiber.Ctx) {
+	c.Cookie(&fiber.Cookie{
+		Name:     "current_app_id",
+		Value:    "",
+		MaxAge:   -1,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		Path:     "/",
+	})
+	c.Cookie(&fiber.Cookie{
+		Name:     "current_domain_id",
 		Value:    "",
 		MaxAge:   -1,
 		HTTPOnly: true,

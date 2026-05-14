@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
+	"github.com/MarcelArt/kas-bon-v2/internal/enums"
 	webModels "github.com/MarcelArt/kas-bon-v2/web/models"
+	"github.com/MarcelArt/kas-bon-v2/web/middlewares"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	"github.com/gofiber/fiber/v3"
 )
@@ -44,8 +47,11 @@ func (h *AuthHandler) HandleLogin(c fiber.Ctx) error {
 	}
 
 	setTokenCookies(c, res.AccessToken, res.RefreshToken, form.IsRemember)
+	setAppCookie(c)
+	c.Locals("userID", res.User.ID)
+	c.Locals("username", res.User.Username)
 
-	c.Set("HX-Redirect", "/dashboard")
+	c.Set("HX-Redirect", "/select-org")
 	return c.SendStatus(fiber.StatusOK)
 }
 
@@ -65,7 +71,8 @@ func (h *AuthHandler) HandleRegister(c fiber.Ctx) error {
 		Password: form.Password,
 	}
 
-	if _, err := h.userSvc.Create(userInput); err != nil {
+	userID, err := h.userSvc.Create(userInput)
+	if err != nil {
 		return renderAlert(c, "error", fmt.Sprintf("Failed to create account: %s", err.Error()))
 	}
 
@@ -81,8 +88,61 @@ func (h *AuthHandler) HandleRegister(c fiber.Ctx) error {
 	}
 
 	setTokenCookies(c, res.AccessToken, res.RefreshToken, false)
+	setAppCookie(c)
+	c.Locals("userID", userID)
+	c.Locals("username", form.Username)
 
-	c.Set("HX-Redirect", "/dashboard")
+	c.Set("HX-Redirect", "/select-org")
+	return c.SendStatus(fiber.StatusOK)
+}
+
+func (h *AuthHandler) SelectOrgPage(c fiber.Ctx) error {
+	userID := c.Locals("userID")
+	orgs, err := h.userSvc.GetOrganizations(userID)
+	if err != nil || len(orgs) == 0 {
+		middlewares.ClearTokenCookies(c)
+		middlewares.ClearContextCookies(c)
+		return c.Redirect().To("/login")
+	}
+
+	if len(orgs) == 1 {
+		setDomainCookie(c, orgs[0].ID)
+		return c.Redirect().To("/apps")
+	}
+
+	viewOrgs := make([]webModels.OrgViewModel, len(orgs))
+	for i, o := range orgs {
+		viewOrgs[i] = webModels.OrgViewModel{
+			ID:          o.ID,
+			Name:        o.Name,
+			Description: o.Description,
+		}
+	}
+
+	data := webModels.OrgSelectPageData{
+		PageData: webModels.PageData{
+			Title: "Select Organization",
+		},
+		Organizations: viewOrgs,
+	}
+
+	return c.Render("select_org", data)
+}
+
+func (h *AuthHandler) HandleSelectOrg(c fiber.Ctx) error {
+	domainID := c.FormValue("domain_id")
+	if domainID == "" {
+		return c.Redirect().To("/select-org")
+	}
+
+	id := parseUint(domainID)
+	if id == 0 {
+		return c.Redirect().To("/select-org")
+	}
+
+	setDomainCookie(c, id)
+
+	c.Set("HX-Redirect", "/apps")
 	return c.SendStatus(fiber.StatusOK)
 }
 
@@ -119,4 +179,26 @@ func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember b
 func renderAlert(c fiber.Ctx, alertType, message string) error {
 	html := fmt.Sprintf(`<div class="alert alert-%s">%s</div>`, alertType, message)
 	return c.SendString(html)
+}
+
+func setAppCookie(c fiber.Ctx) {
+	c.Cookie(&fiber.Cookie{
+		Name:     "current_app_id",
+		Value:    strconv.FormatUint(uint64(enums.AppID), 10),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		Path:     "/",
+	})
+}
+
+func setDomainCookie(c fiber.Ctx, domainID uint) {
+	c.Cookie(&fiber.Cookie{
+		Name:     "current_domain_id",
+		Value:    strconv.FormatUint(uint64(domainID), 10),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+		Path:     "/",
+	})
 }

@@ -6,8 +6,9 @@ import (
 )
 
 type PageData struct {
-	Title      string
-	ActivePage string
+	Title       string
+	ActivePage  string
+	Permissions map[string]bool
 }
 
 type PaginationData struct {
@@ -57,6 +58,8 @@ type AppViewModel struct {
 	Name        string
 	Description string
 	CreatedAt   time.Time
+	CanUpdate   bool
+	CanDelete   bool
 }
 
 type AppsPageData struct {
@@ -71,6 +74,8 @@ type DomainViewModel struct {
 	Description    string
 	IsOrganization bool
 	CreatedAt      time.Time
+	CanUpdate      bool
+	CanDelete      bool
 }
 
 type DomainsPageData struct {
@@ -95,10 +100,13 @@ type DomainDetailPageData struct {
 }
 
 type RoleViewModel struct {
-	ID          uint
-	Name        string
-	Description string
-	CreatedAt   time.Time
+	ID                  uint
+	Name                string
+	Description         string
+	CreatedAt           time.Time
+	CanUpdate           bool
+	CanDelete           bool
+	CanReadPermissions  bool
 }
 
 type LoginForm struct {
@@ -120,13 +128,15 @@ type PermissionViewModel struct {
 	Description string
 	CreatedAt   time.Time
 	IsAssigned  bool
+	CanUpdate   bool
+	CanDelete   bool
 }
 
 type AppDetailPageData struct {
 	PageData
-	App         AppViewModel
-	Permissions []PermissionViewModel
-	Pagination  PaginationData
+	App            AppViewModel
+	PermissionList []PermissionViewModel
+	Pagination     PaginationData
 }
 
 type RolePermissionsPageData struct {
@@ -145,4 +155,15 @@ type RolePermissionsListData struct {
 type AlertData struct {
 	Type    string
 	Message string
+}
+
+type OrgViewModel struct {
+	ID          uint
+	Name        string
+	Description string
+}
+
+type OrgSelectPageData struct {
+	PageData
+	Organizations []OrgViewModel
 }

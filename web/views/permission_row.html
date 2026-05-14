@@ -5,6 +5,7 @@
   <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
   <td class="col-actions">
     <div class="cell-actions">
+      {{if .CanUpdate}}
       <button class="btn btn-ghost btn-xs" title="Edit"
               hx-get="/permissions/{{.ID}}/edit" hx-target="#permission-dialog-content" hx-swap="innerHTML"
               @click="document.getElementById('permission-dialog').showModal()">
@@ -12,6 +13,8 @@
           <path d="M11.5 1.5a2.121 2.121 0 1 1 3 3L5 14l-4 1 1-4 9.5-9.5z"></path>
         </svg>
       </button>
+      {{end}}
+      {{if .CanDelete}}
       <button class="btn btn-ghost btn-xs" title="Delete"
               hx-delete="/permissions/{{.ID}}"
               hx-confirm="Delete this permission?"
@@ -23,6 +26,7 @@
           <path d="M5 4V2h6v2"></path>
         </svg>
       </button>
+      {{end}}
     </div>
   </td>
 </tr>

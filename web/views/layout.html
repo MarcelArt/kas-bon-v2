@@ -30,6 +30,7 @@
       <nav class="sidebar-nav" hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML">
         <div class="sidebar-group">
           <span class="sidebar-group-label" x-show="sidebarOpen" x-cloak>Menu</span>
+          {{if index .Permissions "apps#read"}}
           <a href="/apps" class="sidebar-link{{if eq .ActivePage "apps"}} active{{end}}">
             <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="2" width="5" height="5"></rect>
@@ -39,6 +40,8 @@
             </svg>
             <span x-show="sidebarOpen" x-cloak>Apps</span>
           </a>
+          {{end}}
+          {{if index .Permissions "domains#read"}}
           <a href="/domains" class="sidebar-link{{if eq .ActivePage "domains"}} active{{end}}">
             <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="8" cy="4" r="2"></circle>
@@ -49,6 +52,7 @@
             </svg>
             <span x-show="sidebarOpen" x-cloak>Domains</span>
           </a>
+          {{end}}
         </div>
       </nav>
 

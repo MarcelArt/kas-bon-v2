@@ -17,6 +17,7 @@ func NewDomainHandler(domainSvc services.IDomainService) *DomainHandler {
 
 func (h *DomainHandler) DomainsPage(c fiber.Ctx) error {
 	page, domains := h.domainSvc.Read(c)
+	perms := getPermissions(c)
 
 	viewDomains := make([]webModels.DomainViewModel, len(domains))
 	for i, d := range domains {
@@ -26,14 +27,13 @@ func (h *DomainHandler) DomainsPage(c fiber.Ctx) error {
 			Description:    d.Description,
 			IsOrganization: d.IsOrganization,
 			CreatedAt:      d.CreatedAt,
+			CanUpdate:      perms["domains#update"],
+			CanDelete:      perms["domains#delete"],
 		}
 	}
 
 	data := webModels.DomainsPageData{
-		PageData: webModels.PageData{
-			Title:      "Domains",
-			ActivePage: "domains",
-		},
+		PageData:   newPageData(c, "Domains", "domains"),
 		Domains: viewDomains,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
@@ -128,12 +128,15 @@ func (h *DomainHandler) renderDomainRow(c fiber.Ctx, id any) error {
 		return c.Redirect().To("/domains")
 	}
 
+	perms := getPermissions(c)
 	viewDomain := webModels.DomainViewModel{
 		ID:             domain.ID,
 		Name:           domain.Name,
 		Description:    domain.Description,
 		IsOrganization: domain.IsOrganization,
 		CreatedAt:      domain.CreatedAt,
+		CanUpdate:      perms["domains#update"],
+		CanDelete:      perms["domains#delete"],
 	}
 
 	return c.Render("domain_row", viewDomain)

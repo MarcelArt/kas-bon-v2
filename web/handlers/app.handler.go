@@ -19,6 +19,7 @@ func NewAppHandler(appSvc services.IAppService) *AppHandler {
 
 func (h *AppHandler) AppsPage(c fiber.Ctx) error {
 	page, apps := h.appSvc.Read(c)
+	perms := getPermissions(c)
 
 	viewApps := make([]webModels.AppViewModel, len(apps))
 	for i, a := range apps {
@@ -27,14 +28,13 @@ func (h *AppHandler) AppsPage(c fiber.Ctx) error {
 			Name:        a.Name,
 			Description: a.Description,
 			CreatedAt:   a.CreatedAt,
+			CanUpdate:   perms["apps#update"],
+			CanDelete:   perms["apps#delete"],
 		}
 	}
 
 	data := webModels.AppsPageData{
-		PageData: webModels.PageData{
-			Title:      "Apps",
-			ActivePage: "apps",
-		},
+		PageData:   newPageData(c, "Apps", "apps"),
 		Apps: viewApps,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
@@ -128,11 +128,14 @@ func (h *AppHandler) renderAppRow(c fiber.Ctx, id any) error {
 		return c.Redirect().To("/apps")
 	}
 
+	perms := getPermissions(c)
 	viewApp := webModels.AppViewModel{
 		ID:          app.ID,
 		Name:        app.Name,
 		Description: app.Description,
 		CreatedAt:   app.CreatedAt,
+		CanUpdate:   perms["apps#update"],
+		CanDelete:   perms["apps#delete"],
 	}
 
 	return c.Render("app_row", viewApp)
@@ -140,6 +143,22 @@ func (h *AppHandler) renderAppRow(c fiber.Ctx, id any) error {
 
 func isHtmx(c fiber.Ctx) bool {
 	return c.Get("HX-Request") == "true" && c.Get("HX-Boosted") != "true" && c.Get("HX-Target") != "main-content"
+}
+
+func getPermissions(c fiber.Ctx) map[string]bool {
+	perms, _ := c.Locals("permissions").(map[string]bool)
+	if perms == nil {
+		perms = make(map[string]bool)
+	}
+	return perms
+}
+
+func newPageData(c fiber.Ctx, title, activePage string) webModels.PageData {
+	return webModels.PageData{
+		Title:       title,
+		ActivePage:  activePage,
+		Permissions: getPermissions(c),
+	}
 }
 
 func renderWebAlert(c fiber.Ctx, alertType, message string) error {

@@ -44,6 +44,7 @@ func MigrateDB() error {
 		models.App{},
 		models.Role{},
 		models.Permission{},
+		models.UserInvitation{},
 	)
 	fmt.Println("Database Migrated")
 
@@ -95,6 +96,10 @@ func seedPermissions() {
 		{Name: "domains#create", Description: "Create domains", AppID: enums.AppID},
 		{Name: "domains#update", Description: "Update domains", AppID: enums.AppID},
 		{Name: "domains#delete", Description: "Delete domains", AppID: enums.AppID},
+		{Name: "user-invitations#read", Description: "Read user invitations", AppID: enums.AppID},
+		{Name: "user-invitations#create", Description: "Create user invitations", AppID: enums.AppID},
+		{Name: "user-invitations#update", Description: "Update user invitations", AppID: enums.AppID},
+		{Name: "user-invitations#delete", Description: "Delete user invitations", AppID: enums.AppID},
 	}
 
 	for _, p := range permissions {

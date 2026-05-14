@@ -44,6 +44,9 @@ func SetupRoutes(api fiber.Router) {
 		repositories.NewUserRepo(configs.DB),
 		e,
 	)
+	userInvitationSvc := services.NewUserInvitationService(
+		repositories.NewUserInvitationRepo(configs.DB),
+	)
 
 	SetupUserRoutes(v1, authz, userSvc)
 	SetupRoleRoutes(v1, authz, roleSvc)
@@ -52,4 +55,5 @@ func SetupRoutes(api fiber.Router) {
 	SetupDomainRoutes(v1, authz, domainSvc)
 	SetupAccessControlRoutes(v1, authz, acSvc)
 	SetupTokenRoutes(v1, tokenSvc)
+	SetupUserInvitationRoutes(v1, authz, userInvitationSvc)
 }

@@ -39,12 +39,17 @@ func SetupRoutes(api fiber.Router) {
 		repositories.NewAppRepo(configs.DB),
 		repositories.NewDomainRepo(configs.DB),
 	)
+	domainSvc := services.NewDomainService(
+		repositories.NewDomainRepo(configs.DB),
+		repositories.NewUserRepo(configs.DB),
+		e,
+	)
 
 	SetupUserRoutes(v1, authz, userSvc)
 	SetupRoleRoutes(v1, authz, roleSvc)
 	SetupPermissionRoutes(v1, authz)
 	SetupAppRoutes(v1, authz)
-	SetupDomainRoutes(v1, authz)
+	SetupDomainRoutes(v1, authz, domainSvc)
 	SetupAccessControlRoutes(v1, authz, acSvc)
 	SetupTokenRoutes(v1, tokenSvc)
 }

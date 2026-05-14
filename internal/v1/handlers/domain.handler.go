@@ -129,3 +129,24 @@ func (h *DomainHandler) GetByID(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(domain, "Domain found"))
 }
+
+// @Summary		Get users by domain
+// @Description	Retrieve a list of users by domain
+// @Tags			domains
+// @Security		ApiKeyAuth
+// @Produce			json
+// @Param			X-App-Id		header		int	true	"App identifier"
+// @Param			X-Domain-Id	header		int	true	"Domain identifier"
+// @Param			id			path		string	true	"Domain ID"
+// @Success			200			{object}	common.JSONResponse{items=models.User}
+// @Failure			500			{object}	common.JSONResponse
+// @Router			/v1/domains/{id}/users [get]
+func (h *DomainHandler) GetUsers(c fiber.Ctx) error {
+	id := c.Params("id")
+	users, err := h.svc.GetUsers(id)
+	if err != nil {
+		return c.Status(common.StatusCodeFromError(err)).JSON(common.NewJSONResponse(err, "failed getting users"))
+	}
+
+	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(users, "Users found"))
+}

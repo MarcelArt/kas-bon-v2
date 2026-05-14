@@ -13,6 +13,9 @@ import (
 )
 
 func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
+	a, _ := gormadapter.NewAdapterByDB(configs.DB)
+	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
+
 	app.Use("/public", static.New("./web/public"))
 
 	authH := handlers.NewAuthHandler(userSvc)
@@ -54,7 +57,11 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	protected.Put("/permissions/:id", appDetailH.UpdatePermission)
 	protected.Delete("/permissions/:id", appDetailH.DeletePermission)
 
-	domainSvc := services.NewDomainService(repositories.NewDomainRepo(configs.DB))
+	domainSvc := services.NewDomainService(
+		repositories.NewDomainRepo(configs.DB),
+		repositories.NewUserRepo(configs.DB),
+		e,
+	)
 	domainH := handlers.NewDomainHandler(domainSvc)
 	protected.Get("/domains", domainH.DomainsPage)
 	protected.Get("/domains/new", domainH.CreateDomainForm)
@@ -63,8 +70,6 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService) {
 	protected.Put("/domains/:id", domainH.UpdateDomain)
 	protected.Delete("/domains/:id", domainH.DeleteDomain)
 
-	a, _ := gormadapter.NewAdapterByDB(configs.DB)
-	e, _ := casbin.NewEnforcer("rbac_model.conf", a)
 	roleSvc := services.NewRoleService(
 		repositories.NewRoleRepo(configs.DB),
 		repositories.NewAppRepo(configs.DB),

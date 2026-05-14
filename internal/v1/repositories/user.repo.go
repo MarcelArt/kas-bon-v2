@@ -14,6 +14,7 @@ type IUserRepo interface {
 	Delete(id any) error
 	GetByID(id any) (models.User, error)
 	GetByUsernameOrEmail(usernameOrEmail string) (models.User, error)
+	GetByUsernames(usernames []string) ([]models.User, error)
 }
 
 type UserRepo struct {
@@ -63,4 +64,10 @@ func (r *UserRepo) GetByUsernameOrEmail(usernameOrEmail string) (models.User, er
 	var user models.User
 	err := r.db.Where("username = ? OR email = ?", usernameOrEmail, usernameOrEmail).First(&user).Error
 	return user, err
+}
+
+func (r *UserRepo) GetByUsernames(usernames []string) ([]models.User, error) {
+	var users []models.User
+	err := r.db.Where("username in ?", usernames).Find(&users).Error
+	return users, err
 }

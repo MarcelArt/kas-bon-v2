@@ -4,7 +4,8 @@
   <button class="dialog-close" onclick="document.getElementById('role-dialog').close()">&times;</button>
 </div>
 <form hx-post="/domains/{{.DomainID}}/roles" hx-target="#domains-roles-table-body" hx-swap="beforeend"
-      hx-on::after-request="document.getElementById('role-dialog').close()">
+      hx-on::after-request="document.getElementById('role-dialog').close()"
+      data-toast-success="Role created" data-toast-error="Failed to create role">
   <input type="hidden" name="domainId" value="{{.DomainID}}">
   <div class="form-group">
     <label class="form-label" for="role-name">Name</label>

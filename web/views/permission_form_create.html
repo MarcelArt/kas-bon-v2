@@ -4,7 +4,8 @@
   <button class="dialog-close" onclick="document.getElementById('permission-dialog').close()">&times;</button>
 </div>
 <form hx-post="/apps/{{.AppID}}/permissions" hx-target="#apps-permissions-table-body" hx-swap="beforeend"
-      hx-on::after-request="document.getElementById('permission-dialog').close()">
+      hx-on::after-request="document.getElementById('permission-dialog').close()"
+      data-toast-success="Permission created" data-toast-error="Failed to create permission">
   <input type="hidden" name="appId" value="{{.AppID}}">
   <div class="form-group">
     <label class="form-label" for="perm-name">Name</label>

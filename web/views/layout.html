@@ -112,6 +112,52 @@
     </main>
   </div>
   <script>
+    var _toastOffset = 0;
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+      toast.className = 'toast toast-' + type;
+      var iconSvg = type === 'success'
+        ? '<svg class="toast-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 4 8-8"></path></svg>'
+        : '<svg class="toast-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="12" y2="12"></line><line x1="12" y1="4" x2="4" y2="12"></line></svg>';
+      toast.innerHTML = iconSvg + '<span>' + message + '</span>';
+      toast.style.position = 'fixed';
+      toast.style.right = '24px';
+      toast.style.bottom = (24 + _toastOffset) + 'px';
+      toast.style.zIndex = '9999';
+      document.body.appendChild(toast);
+      var height = toast.offsetHeight;
+      _toastOffset += height + 8;
+      setTimeout(function() {
+        toast.classList.add('toast-exit');
+        _toastOffset -= height + 8;
+        if (_toastOffset < 0) _toastOffset = 0;
+        setTimeout(function() {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 200);
+      }, 3000);
+    }
+
+    document.body.addEventListener('htmx:afterRequest', function(e) {
+      var el = e.detail.elt;
+      if (!el || !e.detail.xhr) return;
+      var successMsg = el.getAttribute('data-toast-success');
+      var errorMsg = el.getAttribute('data-toast-error');
+      if (!successMsg && !errorMsg) {
+        var form = el.closest('form');
+        if (form) {
+          successMsg = form.getAttribute('data-toast-success');
+          errorMsg = form.getAttribute('data-toast-error');
+        }
+      }
+      if (!successMsg && !errorMsg) return;
+      var status = e.detail.xhr.status;
+      if (status >= 200 && status < 300 && successMsg) {
+        showToast(successMsg, 'success');
+      } else if (status >= 400 && errorMsg) {
+        showToast(errorMsg, 'error');
+      }
+    });
+
     var _lastPath = window.location.pathname;
     document.addEventListener('htmx:afterSettle', function() {
       if (window.location.pathname !== _lastPath) {

@@ -19,7 +19,8 @@
               hx-delete="/apps/{{.ID}}"
               hx-confirm="Delete this app?"
               hx-target="closest tr"
-              hx-swap="outerHTML swap:0.3s">
+              hx-swap="outerHTML swap:0.3s"
+              data-toast-success="App deleted" data-toast-error="Failed to delete app">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 4 4 14 12 14 13 4"></polyline>
           <line x1="2" y1="4" x2="14" y2="4"></line>

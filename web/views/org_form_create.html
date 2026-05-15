@@ -4,7 +4,8 @@
   <button class="dialog-close" onclick="document.getElementById('org-dialog').close()">&times;</button>
 </div>
 <form hx-post="/organizations" hx-target="#orgs-table-body" hx-swap="beforeend"
-      hx-on::after-request="document.getElementById('org-dialog').close()">
+      hx-on::after-request="document.getElementById('org-dialog').close()"
+      data-toast-success="Organization created" data-toast-error="Failed to create organization">
   <input type="hidden" name="isOrganization" value="true">
   <div class="form-group">
     <label class="form-label" for="org-name">Name</label>

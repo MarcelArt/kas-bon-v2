@@ -4,7 +4,8 @@
   <button class="dialog-close" onclick="document.getElementById('invite-dialog').close()">&times;</button>
 </div>
 <form hx-post="/domains/{{.DomainID}}/invitations" hx-swap="none"
-      hx-on::after-request="document.getElementById('invite-dialog').close()">
+      hx-on::after-request="document.getElementById('invite-dialog').close()"
+      data-toast-success="Invitation sent" data-toast-error="Failed to send invitation">
   <input type="hidden" name="domainId" value="{{.DomainID}}">
   <div class="form-group">
     <label class="form-label" for="invite-user">User</label>

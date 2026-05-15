@@ -18,13 +18,15 @@
       <button class="btn btn-primary btn-xs" title="Accept"
               hx-post="/account/invitations/{{.ID}}/accept"
               hx-target="closest tr"
-              hx-swap="outerHTML">
+              hx-swap="outerHTML"
+              data-toast-success="Invitation accepted" data-toast-error="Failed to accept invitation">
         Accept
       </button>
       <button class="btn btn-outline btn-xs" title="Reject"
               hx-post="/account/invitations/{{.ID}}/reject"
               hx-target="closest tr"
-              hx-swap="outerHTML">
+              hx-swap="outerHTML"
+              data-toast-success="Invitation rejected" data-toast-error="Failed to reject invitation">
         Reject
       </button>
     </div>

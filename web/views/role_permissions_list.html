@@ -1,6 +1,7 @@
 {{define "role_permissions_list"}}
 {{if .Permissions}}
-<form hx-post="/roles/{{.RoleID}}/permissions" hx-target="#permissions-list" hx-swap="innerHTML">
+<form hx-post="/roles/{{.RoleID}}/permissions" hx-target="#permissions-list" hx-swap="innerHTML"
+      data-toast-success="Permissions saved" data-toast-error="Failed to save permissions">
   <input type="hidden" name="app_id" value="{{.AppID}}">
   <div class="section-header" style="margin-bottom: 8px;">
     <span class="section-title" style="font-size: 12px;">Permissions</span>

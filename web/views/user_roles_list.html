@@ -1,6 +1,7 @@
 {{define "user_roles_list"}}
 {{if .Roles}}
-<form hx-post="/domains/{{.DomainID}}/users/{{.User.ID}}/roles" hx-target="#user-roles-list" hx-swap="outerHTML" id="user-roles-list">
+<form hx-post="/domains/{{.DomainID}}/users/{{.User.ID}}/roles" hx-target="#user-roles-list" hx-swap="outerHTML" id="user-roles-list"
+      data-toast-success="Roles saved" data-toast-error="Failed to save roles">
   <div class="section-header" style="margin-bottom: 8px;">
     <span class="section-title" style="font-size: 12px;">Roles</span>
   </div>

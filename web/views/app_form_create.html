@@ -4,7 +4,8 @@
   <button class="dialog-close" onclick="document.getElementById('app-dialog').close()">&times;</button>
 </div>
 <form hx-post="/apps" hx-target="#apps-table-body" hx-swap="beforeend"
-      hx-on::after-request="document.getElementById('app-dialog').close()">
+      hx-on::after-request="document.getElementById('app-dialog').close()"
+      data-toast-success="App created" data-toast-error="Failed to create app">
   <div class="form-group">
     <label class="form-label" for="app-name">Name</label>
     <input class="form-input" type="text" id="app-name" name="name" placeholder="App name" required>

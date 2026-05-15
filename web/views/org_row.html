@@ -8,7 +8,8 @@
   <td class="col-actions">
     <div class="cell-actions">
       {{if not .IsCurrentOrg}}
-      <form hx-post="/organizations/switch" hx-indicator="this" style="display:inline">
+      <form hx-post="/organizations/switch" hx-indicator="this" style="display:inline"
+            data-toast-success="Organization switched" data-toast-error="Failed to switch organization">
         <input type="hidden" name="domain_id" value="{{.ID}}">
         <button type="submit" class="btn btn-ghost btn-xs" title="Switch to this organization">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

@@ -38,6 +38,10 @@ func (m *WebCasbinMiddleware) getContext(c fiber.Ctx) (string, string, string, e
 	}
 
 	sub, _ := c.Locals("username").(string)
+
+	c.Locals("currentOrgName", dom.Name)
+	c.Locals("currentOrgID", uint(domID))
+
 	return sub, app.Name, dom.Name, nil
 }
 

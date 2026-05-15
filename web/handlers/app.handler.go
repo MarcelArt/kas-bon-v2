@@ -154,10 +154,17 @@ func getPermissions(c fiber.Ctx) map[string]bool {
 }
 
 func newPageData(c fiber.Ctx, title, activePage string) webModels.PageData {
+	currentOrgName, _ := c.Locals("currentOrgName").(string)
+	currentOrgID, _ := c.Locals("currentOrgID").(uint)
+	username, _ := c.Locals("username").(string)
+
 	return webModels.PageData{
-		Title:       title,
-		ActivePage:  activePage,
-		Permissions: getPermissions(c),
+		Title:          title,
+		ActivePage:     activePage,
+		Permissions:    getPermissions(c),
+		CurrentOrgName: currentOrgName,
+		CurrentOrgID:   currentOrgID,
+		CurrentUser:    username,
 	}
 }
 

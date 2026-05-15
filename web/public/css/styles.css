@@ -535,6 +535,14 @@ a:hover {
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 150ms, color 150ms;
+  overflow: hidden;
+}
+
+.sidebar-link-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sidebar-link:hover {
@@ -547,6 +555,17 @@ a:hover {
   background-color: var(--sidebar-accent);
   color: var(--sidebar-primary);
   font-weight: 500;
+}
+
+.sidebar-link-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
 }
 
 .sidebar-link-button {
@@ -563,6 +582,10 @@ a:hover {
 .sidebar-footer {
   padding: 8px;
   border-top: 1px solid var(--sidebar-border);
+}
+
+.sidebar-user-button {
+  margin-bottom: 4px;
 }
 
 .main-content {

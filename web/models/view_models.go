@@ -6,9 +6,12 @@ import (
 )
 
 type PageData struct {
-	Title       string
-	ActivePage  string
-	Permissions map[string]bool
+	Title             string
+	ActivePage        string
+	Permissions       map[string]bool
+	CurrentOrgName    string
+	CurrentOrgID      uint
+	CurrentUser       string
 }
 
 type PaginationData struct {

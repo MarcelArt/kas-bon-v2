@@ -68,12 +68,30 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 		}
 	}
 
+	userID := c.Locals("userID")
+	_, childDomains := h.domainSvc.GetUserDomains(c, userID, domain.ID)
+	viewChildDomains := make([]webModels.DomainViewModel, 0)
+	for _, cd := range childDomains {
+		if cd.ID != domain.ID {
+			viewChildDomains = append(viewChildDomains, webModels.DomainViewModel{
+				ID:             cd.ID,
+				Name:           cd.Name,
+				Description:    cd.Description,
+				IsOrganization: cd.IsOrganization,
+				CreatedAt:      cd.CreatedAt,
+				CanUpdate:      perms["domains#update"],
+				CanDelete:      perms["domains#delete"],
+			})
+		}
+	}
+
 	basePath := "/domains/" + domainID
 	data := webModels.DomainDetailPageData{
-		PageData: newPageData(c, domain.Name, "domain_detail"),
-		Domain:   viewDomain,
-		Roles:    viewRoles,
-		Users:    viewUsers,
+		PageData:     newPageData(c, domain.Name, "domain_detail"),
+		Domain:       viewDomain,
+		Roles:        viewRoles,
+		Users:        viewUsers,
+		ChildDomains: viewChildDomains,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
 			page.First, page.Last, basePath,

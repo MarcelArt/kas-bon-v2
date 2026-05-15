@@ -94,10 +94,11 @@ type DomainUserViewModel struct {
 
 type DomainDetailPageData struct {
 	PageData
-	Domain     DomainViewModel
-	Roles      []RoleViewModel
-	Users      []DomainUserViewModel
-	Pagination PaginationData
+	Domain        DomainViewModel
+	Roles         []RoleViewModel
+	Users         []DomainUserViewModel
+	ChildDomains  []DomainViewModel
+	Pagination    PaginationData
 }
 
 type RoleViewModel struct {

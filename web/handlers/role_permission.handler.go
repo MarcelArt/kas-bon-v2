@@ -37,7 +37,7 @@ func (h *RolePermissionHandler) PermissionsPage(c fiber.Ctx) error {
 	}
 
 	data := webModels.RolePermissionsPageData{
-		PageData:   newPageData(c, "Role Permissions", "role_permissions"),
+		PageData:   newPageData(c, "Domains", "role_permissions"),
 		Role: webModels.RoleViewModel{
 			ID:          role.ID,
 			Name:        role.Name,

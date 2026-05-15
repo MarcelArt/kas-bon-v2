@@ -87,7 +87,7 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 
 	basePath := "/domains/" + domainID
 	data := webModels.DomainDetailPageData{
-		PageData:     newPageData(c, domain.Name, "domain_detail"),
+		PageData:     newPageData(c, "Domains", "domain_detail"),
 		Domain:       viewDomain,
 		Roles:        viewRoles,
 		Users:        viewUsers,
@@ -145,7 +145,7 @@ func (h *DomainDetailHandler) CreateSubdomain(c fiber.Ctx) error {
 	}
 
 	data := webModels.DomainDetailPageData{
-		PageData:     newPageData(c, domain.Name, "domain_detail"),
+		PageData:     newPageData(c, "Domains", "domain_detail"),
 		Domain:       webModels.DomainViewModel{ID: domain.ID},
 		ChildDomains: viewChildDomains,
 	}

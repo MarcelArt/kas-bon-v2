@@ -48,7 +48,7 @@ func (h *AppDetailHandler) AppDetailPage(c fiber.Ctx) error {
 
 	basePath := "/apps/" + appID
 	data := webModels.AppDetailPageData{
-		PageData:       newPageData(c, app.Name, "app_detail"),
+		PageData:       newPageData(c, "Apps", "app_detail"),
 		App:            viewApp,
 		PermissionList: viewPerms,
 		Pagination: webModels.NewPaginationData(

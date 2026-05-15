@@ -53,7 +53,7 @@ func (h *UserRoleHandler) UserRolesPage(c fiber.Ctx) error {
 	}
 
 	data := webModels.UserRolesPageData{
-		PageData: newPageData(c, "Assign Roles", "user_roles"),
+		PageData: newPageData(c, "Domains", "user_roles"),
 		User: webModels.UserViewModel{
 			ID:       user.ID,
 			Username: user.Username,

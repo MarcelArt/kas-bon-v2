@@ -158,6 +158,11 @@ type RolePermissionsListData struct {
 	Permissions []PermissionViewModel
 }
 
+type UpdateAccountForm struct {
+	Email    string `form:"email"`
+	Password string `form:"password"`
+}
+
 type AlertData struct {
 	Type    string
 	Message string
@@ -209,4 +214,20 @@ type UserViewModel struct {
 	ID       uint
 	Username string
 	Email    string
+}
+
+type InvitationViewModel struct {
+	ID         uint
+	Domain     string
+	Role       string
+	CreatedAt  time.Time
+	AcceptedAt *time.Time
+	RejectedAt *time.Time
+}
+
+type AccountPageData struct {
+	PageData
+	User         UserViewModel
+	Invitations  []InvitationViewModel
+	Pagination   PaginationData
 }

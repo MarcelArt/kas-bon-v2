@@ -1,0 +1,65 @@
+{{define "account_invitations_table"}}
+<div id="{{.Pagination.TargetID}}">
+  <div class="card">
+    <div class="card-content">
+      {{if .Invitations}}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Role</th>
+            <th>Invited</th>
+            <th>Status</th>
+            <th class="col-actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Invitations}}
+          <tr>
+            <td class="cell-name">{{.Domain}}</td>
+            <td class="cell-desc">{{.Role}}</td>
+            <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
+            <td>
+              {{if .AcceptedAt}}
+                <span class="badge badge-success">Accepted</span>
+              {{else if .RejectedAt}}
+                <span class="badge badge-error">Rejected</span>
+              {{else}}
+                <span class="badge">Pending</span>
+              {{end}}
+            </td>
+            <td class="col-actions">
+              {{if not .AcceptedAt}}{{if not .RejectedAt}}
+              <div class="cell-actions">
+                <button class="btn btn-primary btn-xs" title="Accept"
+                        hx-post="/account/invitations/{{.ID}}/accept"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML">
+                  Accept
+                </button>
+                <button class="btn btn-outline btn-xs" title="Reject"
+                        hx-post="/account/invitations/{{.ID}}/reject"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML">
+                  Reject
+                </button>
+              </div>
+              {{end}}{{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 16 16" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 4l6-3 6 3v5c0 3.5-2.6 6.8-6 7.5-3.4-.7-6-4-6-7.5V4z"></path>
+        </svg>
+        <p>No invitations yet.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{template "pagination" .}}
+</div>
+{{end}}

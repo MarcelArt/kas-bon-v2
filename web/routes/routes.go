@@ -48,6 +48,18 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	authed.Get("/select-org", authH.SelectOrgPage)
 	authed.Post("/select-org", authH.HandleSelectOrg)
 
+	invitationSvc := services.NewUserInvitationService(repositories.NewUserInvitationRepo(configs.DB))
+
+	domainSvc := services.NewDomainService(
+		repositories.NewDomainRepo(configs.DB),
+		repositories.NewUserRepo(configs.DB),
+		e,
+	)
+
+	accountH := handlers.NewAccountHandler(userSvc, domainSvc, invitationSvc)
+	authed.Get("/account", accountH.AccountPage)
+	authed.Put("/account", accountH.UpdateAccount)
+
 	protected := app.Group("/", middlewares.CookieAuth(userSvc), middlewares.RequireContext(), authz.CheckPermissions(allWebPermissions...))
 
 	protected.Get("/dashboard", func(c fiber.Ctx) error {
@@ -72,11 +84,6 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	protected.Put("/permissions/:id", authz.HasPermission("permissions#update"), appDetailH.UpdatePermission)
 	protected.Delete("/permissions/:id", authz.HasPermission("permissions#delete"), appDetailH.DeletePermission)
 
-	domainSvc := services.NewDomainService(
-		repositories.NewDomainRepo(configs.DB),
-		repositories.NewUserRepo(configs.DB),
-		e,
-	)
 	domainH := handlers.NewDomainHandler(domainSvc)
 	orgH := handlers.NewOrgHandler(domainSvc, userSvc)
 	protected.Get("/organizations", authz.HasPermission("domains#read"), orgH.OrgsPage)

@@ -9,7 +9,8 @@ import (
 
 type IUserInvitationRepo interface {
 	Create(invitation models.UserInvitationInput) (uint, error)
-	Read(c fiber.Ctx) (paginate.Page, []models.UserInvitation)
+	Read(c fiber.Ctx) (paginate.Page, []models.UserInvitationPage)
+	ReadByUserID(c fiber.Ctx, userID any) (paginate.Page, []models.UserInvitationPage)
 	Update(id any, invitation models.UserInvitationInput) error
 	Delete(id any) error
 	GetByID(id any) (models.UserInvitation, error)
@@ -43,11 +44,21 @@ func (r *UserInvitationRepo) Create(invitation models.UserInvitationInput) (uint
 	return invitation.ID, err
 }
 
-func (r *UserInvitationRepo) Read(c fiber.Ctx) (paginate.Page, []models.UserInvitation) {
-	var invitations []models.UserInvitation
+func (r *UserInvitationRepo) Read(c fiber.Ctx) (paginate.Page, []models.UserInvitationPage) {
+	var invitations []models.UserInvitationPage
 	pg := paginate.New()
 
 	stmt := r.db.Raw(r.pageQuery)
+
+	page := pg.With(stmt).Request(c.Request()).Response(&invitations)
+	return page, invitations
+}
+
+func (r *UserInvitationRepo) ReadByUserID(c fiber.Ctx, userID any) (paginate.Page, []models.UserInvitationPage) {
+	var invitations []models.UserInvitationPage
+	pg := paginate.New()
+
+	stmt := r.db.Raw(r.pageQuery+" and uv.user_id = ?", userID)
 
 	page := pg.With(stmt).Request(c.Request()).Response(&invitations)
 	return page, invitations

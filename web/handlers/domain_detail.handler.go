@@ -8,9 +8,9 @@ import (
 )
 
 type DomainDetailHandler struct {
-	domainSvc    services.IDomainService
-	roleSvc      services.IRoleService
-	userSvc      services.IUserService
+	domainSvc     services.IDomainService
+	roleSvc       services.IRoleService
+	userSvc       services.IUserService
 	invitationSvc services.IUserInvitationService
 }
 
@@ -53,24 +53,27 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 	domainUsers, _ := h.domainSvc.GetUsers(domainID)
 	viewUsers := make([]webModels.DomainUserViewModel, len(domainUsers))
 	for i, du := range domainUsers {
-		roleName := ""
-		if len(du.Policy) > 1 {
-			roleName = du.Policy[1]
+		roleNames := make([]string, 0, len(du.Policies))
+		for _, p := range du.Policies {
+			if len(p) > 1 {
+				roleNames = append(roleNames, p[1])
+			}
 		}
 		viewUsers[i] = webModels.DomainUserViewModel{
+			ID:        du.User.ID,
 			Username:  du.User.Username,
 			Email:     du.User.Email,
-			RoleName:  roleName,
+			RoleNames: roleNames,
 			CreatedAt: du.User.CreatedAt,
 		}
 	}
 
 	basePath := "/domains/" + domainID
 	data := webModels.DomainDetailPageData{
-		PageData:   newPageData(c, domain.Name, "domain_detail"),
-		Domain: viewDomain,
-		Roles:  viewRoles,
-		Users:  viewUsers,
+		PageData: newPageData(c, domain.Name, "domain_detail"),
+		Domain:   viewDomain,
+		Roles:    viewRoles,
+		Users:    viewUsers,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
 			page.First, page.Last, basePath,

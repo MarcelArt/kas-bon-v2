@@ -10,6 +10,7 @@
             <th>Email</th>
             <th>Role</th>
             <th>Joined</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
         <tbody>
@@ -17,8 +18,20 @@
           <tr>
             <td class="cell-name">{{.Username}}</td>
             <td class="cell-desc">{{.Email}}</td>
-            <td><span class="badge">{{.RoleName}}</span></td>
+            <td>
+              {{range .RoleNames}}<span class="badge">{{.}}</span> {{end}}
+            </td>
             <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
+            <td class="col-actions">
+              <div class="cell-actions">
+                <a href="/domains/{{$.Domain.ID}}/users/{{.ID}}/roles" class="btn btn-ghost btn-xs" title="Assign Roles">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 1L2 4v4c0 3.5 2.6 6.8 6 7.5 3.4-.7 6-4 6-7.5V4L8 1z"></path>
+                    <path d="M5.5 8l2 2 3-3"></path>
+                  </svg>
+                </a>
+              </div>
+            </td>
           </tr>
           {{end}}
         </tbody>

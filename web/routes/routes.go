@@ -108,4 +108,8 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	protected.Get("/roles/:id/permissions", authz.HasPermission("roles#read"), rolePermH.PermissionsPage)
 	protected.Get("/roles/:id/permissions/list", authz.HasPermission("roles#read"), rolePermH.PermissionsList)
 	protected.Post("/roles/:id/permissions", authz.HasPermission("roles#update"), rolePermH.AssignPermissions)
+
+	userRoleH := handlers.NewUserRoleHandler(userSvc, roleSvc, domainSvc)
+	protected.Get("/domains/:domainId/users/:userId/roles", authz.HasPermission("roles#read"), userRoleH.UserRolesPage)
+	protected.Post("/domains/:domainId/users/:userId/roles", authz.HasPermission("roles#update"), userRoleH.AssignRoles)
 }

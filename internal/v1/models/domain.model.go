@@ -31,6 +31,6 @@ func (DomainInput) TableName() string {
 }
 
 type DomainUser struct {
-	User   User     `json:"user"`
-	Policy []string `json:"policy"`
+	User     User       `json:"user"`
+	Policies [][]string `json:"policies"`
 }

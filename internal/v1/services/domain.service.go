@@ -5,6 +5,7 @@ import (
 
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/MarcelArt/kas-bon-v2/pkg/arrays"
 	"github.com/casbin/casbin/v3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/morkid/paginate"
@@ -65,17 +66,41 @@ func (s *DomainService) GetUsers(id any) ([]models.DomainUser, error) {
 		return res, fmt.Errorf("failed to get user lists from policy: %w", err)
 	}
 
-	for _, policy := range policies {
-		user, err := s.uRepo.GetByUsernameOrEmail(policy[0])
+	groupedPolicies := make(map[string][][]string)
+	groupedPolicies = arrays.Reduce(policies, groupedPolicies, func(total map[string][][]string, currentValue []string) map[string][][]string {
+		username := currentValue[0]
+
+		if _, ok := total[username]; !ok {
+			total[username] = make([][]string, 0)
+		}
+		total[username] = append(total[username], currentValue)
+
+		return total
+	})
+
+	for k, v := range groupedPolicies {
+		user, err := s.uRepo.GetByUsernameOrEmail(k)
 		if err != nil {
 			continue
 		}
 
 		res = append(res, models.DomainUser{
-			User:   user,
-			Policy: policy,
+			User:     user,
+			Policies: v,
 		})
 	}
+
+	// for _, policy := range policies {
+	// 	user, err := s.uRepo.GetByUsernameOrEmail(policy[0])
+	// 	if err != nil {
+	// 		continue
+	// 	}
+
+	// 	res = append(res, models.DomainUser{
+	// 		User:   user,
+	// 		Policy: policy,
+	// 	})
+	// }
 
 	return res, nil
 }

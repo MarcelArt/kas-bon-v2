@@ -85,9 +85,10 @@ type DomainsPageData struct {
 }
 
 type DomainUserViewModel struct {
+	ID        uint
 	Username  string
 	Email     string
-	RoleName  string
+	RoleNames []string
 	CreatedAt time.Time
 }
 
@@ -104,6 +105,7 @@ type RoleViewModel struct {
 	Name                string
 	Description         string
 	CreatedAt           time.Time
+	IsAssigned          bool
 	CanUpdate           bool
 	CanDelete           bool
 	CanReadPermissions  bool
@@ -183,4 +185,18 @@ type UserOption struct {
 type RoleOption struct {
 	ID   uint
 	Name string
+}
+
+type UserRolesPageData struct {
+	PageData
+	User       UserViewModel
+	DomainID   uint
+	DomainName string
+	Roles      []RoleViewModel
+}
+
+type UserViewModel struct {
+	ID       uint
+	Username string
+	Email    string
 }

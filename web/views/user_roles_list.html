@@ -1,0 +1,27 @@
+{{define "user_roles_list"}}
+{{if .Roles}}
+<form hx-post="/domains/{{.DomainID}}/users/{{.User.ID}}/roles" hx-target="#user-roles-list" hx-swap="outerHTML" id="user-roles-list">
+  <div class="section-header" style="margin-bottom: 8px;">
+    <span class="section-title" style="font-size: 12px;">Roles</span>
+  </div>
+  <div class="permissions-grid">
+    {{range .Roles}}
+    <label class="permission-item">
+      <input class="checkbox-input" type="checkbox" name="role_ids" value="{{.ID}}" {{if .IsAssigned}}checked{{end}}>
+      <div>
+        <span class="permission-name">{{.Name}}</span>
+        {{if .Description}}<span class="permission-desc">{{.Description}}</span>{{end}}
+      </div>
+    </label>
+    {{end}}
+  </div>
+  <div class="dialog-footer" style="margin-top: 12px;">
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>
+{{else}}
+<div class="empty-state" style="padding: 24px;">
+  <p>No roles available in this domain.</p>
+</div>
+{{end}}
+{{end}}

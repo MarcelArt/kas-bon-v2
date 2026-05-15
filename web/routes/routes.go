@@ -48,7 +48,13 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	authed.Get("/select-org", authH.SelectOrgPage)
 	authed.Post("/select-org", authH.HandleSelectOrg)
 
-	invitationSvc := services.NewUserInvitationService(repositories.NewUserInvitationRepo(configs.DB))
+	invitationSvc := services.NewUserInvitationService(
+		repositories.NewUserInvitationRepo(configs.DB),
+		repositories.NewUserRepo(configs.DB),
+		repositories.NewDomainRepo(configs.DB),
+		repositories.NewRoleRepo(configs.DB),
+		e,
+	)
 
 	domainSvc := services.NewDomainService(
 		repositories.NewDomainRepo(configs.DB),
@@ -59,6 +65,8 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	accountH := handlers.NewAccountHandler(userSvc, domainSvc, invitationSvc)
 	authed.Get("/account", accountH.AccountPage)
 	authed.Put("/account", accountH.UpdateAccount)
+	authed.Post("/account/invitations/:id/accept", accountH.AcceptInvitation)
+	authed.Post("/account/invitations/:id/reject", accountH.RejectInvitation)
 
 	protected := app.Group("/", middlewares.CookieAuth(userSvc), middlewares.RequireContext(), authz.CheckPermissions(allWebPermissions...))
 
@@ -105,7 +113,7 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 		e,
 	)
 
-	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc, userSvc, services.NewUserInvitationService(repositories.NewUserInvitationRepo(configs.DB)))
+	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc, userSvc, invitationSvc)
 	protected.Get("/domains/:id", authz.HasPermission("roles#read"), domainDetailH.DomainDetailPage)
 	protected.Get("/domains/:id/subdomains/new", authz.HasPermission("domains#create"), domainDetailH.CreateSubdomainForm)
 	protected.Post("/domains/:id/subdomains", authz.HasPermission("domains#create"), domainDetailH.CreateSubdomain)

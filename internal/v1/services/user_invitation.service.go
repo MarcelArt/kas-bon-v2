@@ -17,6 +17,8 @@ type IUserInvitationService interface {
 	Update(id any, invitation models.UserInvitationInput) error
 	Delete(id any) error
 	GetByID(id any) (models.UserInvitation, error)
+	Accept(id any) error
+	Reject(id any) error
 }
 
 type UserInvitationService struct {
@@ -27,9 +29,13 @@ type UserInvitationService struct {
 	e     *casbin.Enforcer
 }
 
-func NewUserInvitationService(repo repositories.IUserInvitationRepo) *UserInvitationService {
+func NewUserInvitationService(repo repositories.IUserInvitationRepo, uRepo repositories.IUserRepo, dRepo repositories.IDomainRepo, rRepo repositories.IRoleRepo, e *casbin.Enforcer) *UserInvitationService {
 	return &UserInvitationService{
-		repo: repo,
+		repo:  repo,
+		uRepo: uRepo,
+		dRepo: dRepo,
+		rRepo: rRepo,
+		e:     e,
 	}
 }
 
@@ -65,22 +71,7 @@ func (s *UserInvitationService) Accept(id any) error {
 		return err
 	}
 
-	domain, err := s.dRepo.GetByID(invite.DomainID)
-	if err != nil {
-		return err
-	}
-
-	user, err := s.uRepo.GetByID(invite.UserID)
-	if err != nil {
-		return err
-	}
-
-	role, err := s.repo.GetByID(invite.RoleID)
-	if err != nil {
-		return err
-	}
-
-	s.e.AddGroupingPolicy(user.Username, role.Role.Name, domain.Name)
+	s.e.AddGroupingPolicy(invite.User.Username, invite.Role.Name, invite.Domain.Name)
 
 	s.e.LoadPolicy()
 	return s.repo.Update(id, models.UserInvitationInput{AcceptedAt: &today})

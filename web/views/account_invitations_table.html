@@ -1,3 +1,38 @@
+{{define "account_invitation_row"}}
+<tr id="invitation-row-{{.ID}}">
+  <td class="cell-name">{{.Domain}}</td>
+  <td class="cell-desc">{{.Role}}</td>
+  <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
+  <td>
+    {{if .AcceptedAt}}
+      <span class="badge badge-success">Accepted</span>
+    {{else if .RejectedAt}}
+      <span class="badge badge-error">Rejected</span>
+    {{else}}
+      <span class="badge">Pending</span>
+    {{end}}
+  </td>
+  <td class="col-actions">
+    {{if not .AcceptedAt}}{{if not .RejectedAt}}
+    <div class="cell-actions">
+      <button class="btn btn-primary btn-xs" title="Accept"
+              hx-post="/account/invitations/{{.ID}}/accept"
+              hx-target="closest tr"
+              hx-swap="outerHTML">
+        Accept
+      </button>
+      <button class="btn btn-outline btn-xs" title="Reject"
+              hx-post="/account/invitations/{{.ID}}/reject"
+              hx-target="closest tr"
+              hx-swap="outerHTML">
+        Reject
+      </button>
+    </div>
+    {{end}}{{end}}
+  </td>
+</tr>
+{{end}}
+
 {{define "account_invitations_table"}}
 <div id="{{.Pagination.TargetID}}">
   <div class="card">
@@ -15,38 +50,7 @@
         </thead>
         <tbody>
           {{range .Invitations}}
-          <tr>
-            <td class="cell-name">{{.Domain}}</td>
-            <td class="cell-desc">{{.Role}}</td>
-            <td class="cell-date">{{.CreatedAt.Format "2006-01-02"}}</td>
-            <td>
-              {{if .AcceptedAt}}
-                <span class="badge badge-success">Accepted</span>
-              {{else if .RejectedAt}}
-                <span class="badge badge-error">Rejected</span>
-              {{else}}
-                <span class="badge">Pending</span>
-              {{end}}
-            </td>
-            <td class="col-actions">
-              {{if not .AcceptedAt}}{{if not .RejectedAt}}
-              <div class="cell-actions">
-                <button class="btn btn-primary btn-xs" title="Accept"
-                        hx-post="/account/invitations/{{.ID}}/accept"
-                        hx-target="closest tr"
-                        hx-swap="outerHTML">
-                  Accept
-                </button>
-                <button class="btn btn-outline btn-xs" title="Reject"
-                        hx-post="/account/invitations/{{.ID}}/reject"
-                        hx-target="closest tr"
-                        hx-swap="outerHTML">
-                  Reject
-                </button>
-              </div>
-              {{end}}{{end}}
-            </td>
-          </tr>
+          {{template "account_invitation_row" .}}
           {{end}}
         </tbody>
       </table>

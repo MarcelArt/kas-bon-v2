@@ -97,3 +97,41 @@ func (h *AccountHandler) UpdateAccount(c fiber.Ctx) error {
 
 	return renderAlert(c, "success", "Account updated successfully")
 }
+
+func (h *AccountHandler) AcceptInvitation(c fiber.Ctx) error {
+	id := c.Params("id")
+
+	if err := h.invitationSvc.Accept(id); err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	return h.renderInvitationRow(c, id)
+}
+
+func (h *AccountHandler) RejectInvitation(c fiber.Ctx) error {
+	id := c.Params("id")
+
+	if err := h.invitationSvc.Reject(id); err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	return h.renderInvitationRow(c, id)
+}
+
+func (h *AccountHandler) renderInvitationRow(c fiber.Ctx, id any) error {
+	invitation, err := h.invitationSvc.GetByID(id)
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	viewInv := webModels.InvitationViewModel{
+		ID:         invitation.ID,
+		Domain:     invitation.Domain.Name,
+		Role:       invitation.Role.Name,
+		CreatedAt:  invitation.CreatedAt,
+		AcceptedAt: invitation.AcceptedAt,
+		RejectedAt: invitation.RejectedAt,
+	}
+
+	return c.Render("account_invitation_row", viewInv)
+}

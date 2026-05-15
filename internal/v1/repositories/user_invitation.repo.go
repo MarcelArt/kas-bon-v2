@@ -74,6 +74,10 @@ func (r *UserInvitationRepo) Delete(id any) error {
 
 func (r *UserInvitationRepo) GetByID(id any) (models.UserInvitation, error) {
 	var invitation models.UserInvitation
-	err := r.db.Where("id = ?", id).First(&invitation).Error
+	err := r.db.Where("id = ?", id).
+		Preload("User").
+		Preload("Domain").
+		Preload("Role").
+		First(&invitation).Error
 	return invitation, err
 }

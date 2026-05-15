@@ -12,10 +12,13 @@ type DomainDetailHandler struct {
 	roleSvc       services.IRoleService
 	userSvc       services.IUserService
 	invitationSvc services.IUserInvitationService
+	tokenSvc      services.ITokenService
+	appSvc        services.IAppService
+	permSvc       services.IPermissionService
 }
 
-func NewDomainDetailHandler(domainSvc services.IDomainService, roleSvc services.IRoleService, userSvc services.IUserService, invitationSvc services.IUserInvitationService) *DomainDetailHandler {
-	return &DomainDetailHandler{domainSvc: domainSvc, roleSvc: roleSvc, userSvc: userSvc, invitationSvc: invitationSvc}
+func NewDomainDetailHandler(domainSvc services.IDomainService, roleSvc services.IRoleService, userSvc services.IUserService, invitationSvc services.IUserInvitationService, tokenSvc services.ITokenService, appSvc services.IAppService, permSvc services.IPermissionService) *DomainDetailHandler {
+	return &DomainDetailHandler{domainSvc: domainSvc, roleSvc: roleSvc, userSvc: userSvc, invitationSvc: invitationSvc, tokenSvc: tokenSvc, appSvc: appSvc, permSvc: permSvc}
 }
 
 func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
@@ -86,12 +89,23 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 	}
 
 	basePath := "/domains/" + domainID
+
+	_, allApps := h.appSvc.Read(c)
+	viewApps := make([]webModels.AppViewModel, len(allApps))
+	for i, a := range allApps {
+		viewApps[i] = webModels.AppViewModel{
+			ID:   a.ID,
+			Name: a.Name,
+		}
+	}
+
 	data := webModels.DomainDetailPageData{
 		PageData:     newPageData(c, "Domains", "domain_detail"),
 		Domain:       viewDomain,
 		Roles:        viewRoles,
 		Users:        viewUsers,
 		ChildDomains: viewChildDomains,
+		AllApps:      viewApps,
 		Pagination: webModels.NewPaginationData(
 			page.Page, page.Size, page.TotalPages, page.Total,
 			page.First, page.Last, basePath,
@@ -297,6 +311,34 @@ func (h *DomainDetailHandler) renderRoleRow(c fiber.Ctx, id any) error {
 	}
 
 	return c.Render("role_row", viewRole)
+}
+
+func (h *DomainDetailHandler) CheckPermission(c fiber.Ctx) error {
+	var input models.TokenEndpointRequest
+	if err := c.Bind().Form(&input); err != nil {
+		return c.JSON(fiber.Map{"permitted": false, "message": "Invalid request"})
+	}
+
+	result, err := h.tokenSvc.CheckPermission(c.FormValue("userId"), input)
+	if err != nil {
+		return c.JSON(fiber.Map{"permitted": false, "message": "Error: " + err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"permitted": result, "message": map[bool]string{true: "PERMITTED", false: "DENIED"}[result]})
+}
+
+func (h *DomainDetailHandler) PermissionsByApp(c fiber.Ctx) error {
+	appID := c.Params("appId")
+	permissions, err := h.permSvc.GetByAppID(appID)
+	if err != nil {
+		return c.JSON([]fiber.Map{})
+	}
+
+	opts := make([]fiber.Map, len(permissions))
+	for i, p := range permissions {
+		opts[i] = fiber.Map{"id": p.ID, "name": p.Name}
+	}
+	return c.JSON(opts)
 }
 
 func parseUint(s string) uint {

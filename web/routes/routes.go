@@ -116,7 +116,9 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 		e,
 	)
 
-	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc, userSvc, invitationSvc)
+	tokenSvc := services.NewTokenService(e, repositories.NewUserRepo(configs.DB), repositories.NewAppRepo(configs.DB), repositories.NewDomainRepo(configs.DB))
+
+	domainDetailH := handlers.NewDomainDetailHandler(domainSvc, roleSvc, userSvc, invitationSvc, tokenSvc, appSvc, permSvc)
 	protected.Get("/domains/:id", authz.HasPermission("roles#read"), domainDetailH.DomainDetailPage)
 	protected.Get("/domains/:id/subdomains/new", authz.HasPermission("domains#create"), domainDetailH.CreateSubdomainForm)
 	protected.Post("/domains/:id/subdomains", authz.HasPermission("domains#create"), domainDetailH.CreateSubdomain)
@@ -124,6 +126,8 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	protected.Post("/domains/:id/roles", authz.HasPermission("roles#create"), domainDetailH.CreateRole)
 	protected.Get("/domains/:id/invitations/new", authz.HasPermission("userInvitations#create"), domainDetailH.InviteUserForm)
 	protected.Post("/domains/:id/invitations", authz.HasPermission("userInvitations#create"), domainDetailH.CreateInvitation)
+	protected.Post("/domains/:id/check-permission", authz.HasPermission("roles#read"), domainDetailH.CheckPermission)
+	protected.Get("/apps/:appId/permissions-list", authz.HasPermission("permissions#read"), domainDetailH.PermissionsByApp)
 
 	protected.Get("/roles/:id/edit", authz.HasPermission("roles#update"), domainDetailH.EditRoleForm)
 	protected.Put("/roles/:id", authz.HasPermission("roles#update"), domainDetailH.UpdateRole)

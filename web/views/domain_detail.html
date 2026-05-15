@@ -43,6 +43,15 @@
         </svg>
         Users
       </button>
+      <button class="tab" :class="{ 'tab-active': activeTab === 'perm-test' }" @click="activeTab = 'perm-test'">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 1H2v4"></path>
+          <path d="M2 1l5 5"></path>
+          <path d="M10 15h4v-4"></path>
+          <path d="M14 15l-5-5"></path>
+        </svg>
+        Permission Test
+      </button>
     </div>
 
     <div x-show="activeTab === 'subdomains'" x-cloak>
@@ -90,6 +99,84 @@
         </button>
       </div>
       {{template "domain_users_table" .}}
+    </div>
+    <div x-show="activeTab === 'perm-test'" x-cloak
+         x-data="{
+           selectedUser: '',
+           selectedApp: '',
+           selectedPermission: '',
+           permissions: [],
+           result: null,
+           loading: false,
+           loadPermissions() {
+             if (!this.selectedApp) { this.permissions = []; return; }
+             fetch('/apps/' + this.selectedApp + '/permissions-list')
+               .then(r => r.json())
+               .then(d => { this.permissions = d; this.selectedPermission = ''; });
+           },
+           checkPermission() {
+             this.loading = true;
+             this.result = null;
+             fetch('/domains/{{.Domain.ID}}/check-permission', {
+               method: 'POST',
+               headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+               body: 'userId=' + encodeURIComponent(this.selectedUser) +
+                     '&appId=' + encodeURIComponent(this.selectedApp) +
+                     '&domainId={{.Domain.ID}}' +
+                     '&permission=' + encodeURIComponent(this.selectedPermission)
+             })
+             .then(r => r.json())
+             .then(d => { this.result = d; this.loading = false; })
+             .catch(() => { this.loading = false; });
+           }
+         }">
+      <div class="section-header">
+        <span class="section-desc">Test user permission against a resource and action</span>
+      </div>
+      <div class="card">
+        <div class="card-content" style="padding: 24px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">User</label>
+              <select class="form-input" x-model="selectedUser">
+                <option value="" disabled selected>Select a user</option>
+                {{range .Users}}
+                <option value="{{.ID}}">{{.Username}} ({{.Email}})</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">App</label>
+              <select class="form-input" x-model="selectedApp" @change="loadPermissions()">
+                <option value="" disabled selected>Select an app</option>
+                {{range .AllApps}}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Permission (resource#action)</label>
+              <select class="form-input" x-model="selectedPermission" :disabled="permissions.length === 0">
+                <option value="" disabled selected>Select a permission</option>
+                <template x-for="p in permissions" :key="p.id">
+                  <option :value="p.name" x-text="p.name"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top: 20px; display: flex; align-items: center; gap: 16px;">
+            <button class="btn btn-primary"
+                    :disabled="!selectedUser || !selectedApp || !selectedPermission || loading"
+                    @click="checkPermission()">
+              <span x-show="!loading">Check Permission</span>
+              <span x-show="loading">Checking...</span>
+            </button>
+            <template x-if="result !== null">
+              <div class="alert" :class="result.permitted ? 'alert-success' : 'alert-error'" style="margin: 0; display: inline-block;" x-text="result.message"></div>
+            </template>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

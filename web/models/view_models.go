@@ -101,6 +101,7 @@ type DomainDetailPageData struct {
 	Roles         []RoleViewModel
 	Users         []DomainUserViewModel
 	ChildDomains  []DomainViewModel
+	AllApps       []AppViewModel
 	Pagination    PaginationData
 }
 

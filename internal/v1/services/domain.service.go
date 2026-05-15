@@ -2,7 +2,10 @@ package services
 
 import (
 	"fmt"
+	"log"
 
+	"github.com/MarcelArt/kas-bon-v2/internal/configs"
+	"github.com/MarcelArt/kas-bon-v2/internal/enums"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
 	"github.com/MarcelArt/kas-bon-v2/pkg/arrays"
@@ -12,7 +15,7 @@ import (
 )
 
 type IDomainService interface {
-	Create(domain models.DomainInput) (uint, error)
+	Create(domain models.DomainInput, userID any) (uint, error)
 	Read(c fiber.Ctx) (paginate.Page, []models.Domain)
 	Update(id any, domain models.Domain) error
 	Delete(id any) error
@@ -35,8 +38,37 @@ func NewDomainService(repo repositories.IDomainRepo, uRepo repositories.IUserRep
 	}
 }
 
-func (s *DomainService) Create(domain models.DomainInput) (uint, error) {
-	return s.repo.Create(domain)
+func (s *DomainService) Create(domain models.DomainInput, userID any) (uint, error) {
+	tx := configs.DB.Begin()
+	defer tx.Rollback()
+
+	repo := repositories.NewDomainRepo(tx)
+	rRepo := repositories.NewRoleRepo(tx)
+
+	id, err := repo.Create(domain)
+	if err != nil {
+		return 0, fmt.Errorf("failed creating domain: %w", err)
+	}
+
+	_, err = rRepo.Create(models.RoleInput{
+		Name:     enums.RoleDefault,
+		DomainID: id,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed creating default role: %w", err)
+	}
+
+	user, err := s.uRepo.GetByID(userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed retrieving user: %w", err)
+	}
+
+	s.e.AddPolicy(enums.RoleDefault, enums.AppName, domain.Name, enums.ResourceAll, enums.PermissionFull)
+	s.e.AddGroupingPolicy(user.Username, enums.RoleDefault, domain.Name)
+	s.e.LoadPolicy()
+
+	tx.Commit()
+	return id, nil
 }
 
 func (s *DomainService) Read(c fiber.Ctx) (paginate.Page, []models.Domain) {
@@ -122,6 +154,7 @@ func (s *DomainService) GetUserDomains(c fiber.Ctx, userID any, parentID any) (p
 		page.ErrorMessage = fmt.Sprintf("failed policies of user: %s", err.Error())
 		return page, nil
 	}
+	log.Println("doms :>> ", doms)
 
 	return s.repo.GetDomainByNamesAndParentID(c, parentID, doms)
 

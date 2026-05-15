@@ -29,12 +29,15 @@ func NewDomainHandler(svc services.IDomainService) *DomainHandler {
 // @Failure			500			{object}	common.JSONResponse
 // @Router			/v1/domains [post]
 func (h *DomainHandler) Create(c fiber.Ctx) error {
+	claims := common.FiberCtxToClaims(c)
+	userID := claims["userId"]
+
 	var domain models.DomainInput
 	if err := c.Bind().JSON(&domain); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(common.NewJSONResponse(err, "failed parsing json"))
 	}
 
-	id, err := h.svc.Create(domain)
+	id, err := h.svc.Create(domain, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(common.NewJSONResponse(err, "failed creating domain"))
 	}

@@ -105,6 +105,11 @@ func (h *DomainDetailHandler) DomainDetailPage(c fiber.Ctx) error {
 	return c.Render("domain_detail", data)
 }
 
+func (h *DomainDetailHandler) CreateSubdomainForm(c fiber.Ctx) error {
+	domainID := c.Params("id")
+	return c.Render("subdomain_form_create", map[string]string{"ParentID": domainID})
+}
+
 func (h *DomainDetailHandler) CreateRoleForm(c fiber.Ctx) error {
 	domainID := c.Params("id")
 	return c.Render("role_form_create", map[string]string{"DomainID": domainID})

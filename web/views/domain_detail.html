@@ -46,6 +46,19 @@
     </div>
 
     <div x-show="activeTab === 'subdomains'" x-cloak>
+      <div class="section-header">
+        <span class="section-desc">Manage subdomains under this domain</span>
+        {{if index .Permissions "domains#create"}}
+        <button class="btn btn-primary" hx-get="/domains/{{.Domain.ID}}/subdomains/new" hx-target="#subdomain-dialog-content" hx-swap="innerHTML"
+                @click="document.getElementById('subdomain-dialog').showModal()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="8" y1="2" x2="8" y2="14"></line>
+            <line x1="2" y1="8" x2="14" y2="8"></line>
+          </svg>
+          New Subdomain
+        </button>
+        {{end}}
+      </div>
       {{if .ChildDomains}}
       <table class="data-table">
         <thead>
@@ -110,6 +123,11 @@
       {{template "domain_users_table" .}}
     </div>
   </div>
+
+  <dialog id="subdomain-dialog" class="dialog">
+    <div class="dialog-content" id="subdomain-dialog-content">
+    </div>
+  </dialog>
 
   <dialog id="role-dialog" class="dialog">
     <div class="dialog-content" id="role-dialog-content">

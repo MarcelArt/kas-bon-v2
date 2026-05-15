@@ -81,7 +81,7 @@ func (h *DomainHandler) CreateDomain(c fiber.Ctx) error {
 		return c.Redirect().To("/domains")
 	}
 
-	id, err := h.domainSvc.Create(input)
+	id, err := h.domainSvc.Create(input, c.Locals("userID"))
 	if err != nil {
 		return c.Redirect().To("/domains")
 	}

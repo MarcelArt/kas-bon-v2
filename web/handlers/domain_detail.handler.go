@@ -110,6 +110,49 @@ func (h *DomainDetailHandler) CreateSubdomainForm(c fiber.Ctx) error {
 	return c.Render("subdomain_form_create", map[string]string{"ParentID": domainID})
 }
 
+func (h *DomainDetailHandler) CreateSubdomain(c fiber.Ctx) error {
+	domainID := c.Params("id")
+
+	domain, err := h.domainSvc.GetByID(domainID)
+	if err != nil {
+		return c.Redirect().To("/domains")
+	}
+
+	var input models.DomainInput
+	if err := c.Bind().Form(&input); err != nil {
+		return c.Redirect().To("/domains/" + domainID)
+	}
+
+	if _, err := h.domainSvc.Create(input, c.Locals("userID")); err != nil {
+		return c.Redirect().To("/domains/" + domainID)
+	}
+
+	_, childDomains := h.domainSvc.GetUserDomains(c, c.Locals("userID"), domain.ID)
+	perms := getPermissions(c)
+	viewChildDomains := make([]webModels.DomainViewModel, 0)
+	for _, cd := range childDomains {
+		if cd.ID != domain.ID {
+			viewChildDomains = append(viewChildDomains, webModels.DomainViewModel{
+				ID:             cd.ID,
+				Name:           cd.Name,
+				Description:    cd.Description,
+				IsOrganization: cd.IsOrganization,
+				CreatedAt:      cd.CreatedAt,
+				CanUpdate:      perms["domains#update"],
+				CanDelete:      perms["domains#delete"],
+			})
+		}
+	}
+
+	data := webModels.DomainDetailPageData{
+		PageData:     newPageData(c, domain.Name, "domain_detail"),
+		Domain:       webModels.DomainViewModel{ID: domain.ID},
+		ChildDomains: viewChildDomains,
+	}
+
+	return c.Render("domain_subdomains_table", data)
+}
+
 func (h *DomainDetailHandler) CreateRoleForm(c fiber.Ctx) error {
 	domainID := c.Params("id")
 	return c.Render("role_form_create", map[string]string{"DomainID": domainID})

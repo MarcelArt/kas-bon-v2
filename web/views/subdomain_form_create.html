@@ -3,7 +3,8 @@
   <h2 class="dialog-title">Create Subdomain</h2>
   <button class="dialog-close" onclick="document.getElementById('subdomain-dialog').close()">&times;</button>
 </div>
-<form hx-post="/domains" hx-on::after-request="document.getElementById('subdomain-dialog').close()">
+<form hx-post="/domains/{{.ParentID}}/subdomains" hx-target="#domain-subdomains-table-area" hx-swap="outerHTML"
+      hx-on::after-request="document.getElementById('subdomain-dialog').close()">
   <input type="hidden" name="parentId" value="{{.ParentID}}">
   <input type="hidden" name="isOrganization" value="false">
   <div class="form-group">

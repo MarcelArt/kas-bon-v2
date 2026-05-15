@@ -1,8 +1,11 @@
 package services
 
 import (
+	"time"
+
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/repositories"
+	"github.com/casbin/casbin/v3"
 	"github.com/gofiber/fiber/v3"
 	"github.com/morkid/paginate"
 )
@@ -17,7 +20,11 @@ type IUserInvitationService interface {
 }
 
 type UserInvitationService struct {
-	repo repositories.IUserInvitationRepo
+	repo  repositories.IUserInvitationRepo
+	uRepo repositories.IUserRepo
+	dRepo repositories.IDomainRepo
+	rRepo repositories.IRoleRepo
+	e     *casbin.Enforcer
 }
 
 func NewUserInvitationService(repo repositories.IUserInvitationRepo) *UserInvitationService {
@@ -48,4 +55,38 @@ func (s *UserInvitationService) Delete(id any) error {
 
 func (s *UserInvitationService) GetByID(id any) (models.UserInvitation, error) {
 	return s.repo.GetByID(id)
+}
+
+func (s *UserInvitationService) Accept(id any) error {
+	today := time.Now()
+
+	invite, err := s.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	domain, err := s.dRepo.GetByID(invite.DomainID)
+	if err != nil {
+		return err
+	}
+
+	user, err := s.uRepo.GetByID(invite.UserID)
+	if err != nil {
+		return err
+	}
+
+	role, err := s.repo.GetByID(invite.RoleID)
+	if err != nil {
+		return err
+	}
+
+	s.e.AddGroupingPolicy(user.Username, role.Role.Name, domain.Name)
+
+	s.e.LoadPolicy()
+	return s.repo.Update(id, models.UserInvitationInput{AcceptedAt: &today})
+}
+
+func (s *UserInvitationService) Reject(id any) error {
+	today := time.Now()
+	return s.repo.Update(id, models.UserInvitationInput{RejectedAt: &today})
 }

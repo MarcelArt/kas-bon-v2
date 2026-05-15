@@ -17,6 +17,9 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 	ce, _ := casbin.NewEnforcer("rbac_model.conf", a)
 
 	app.Use("/public", static.New("./web/public"))
+	app.Get("/favicon.ico", func(c fiber.Ctx) error {
+		return c.Status(fiber.StatusNoContent).Send(nil)
+	})
 
 	authz := middlewares.NewWebCasbinMiddleware(ce, repositories.NewAppRepo(configs.DB), repositories.NewDomainRepo(configs.DB))
 

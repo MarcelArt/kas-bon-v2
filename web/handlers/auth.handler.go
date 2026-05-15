@@ -5,11 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
+	"github.com/MarcelArt/kas-bon-v2/internal/configs"
 	"github.com/MarcelArt/kas-bon-v2/internal/enums"
-	webModels "github.com/MarcelArt/kas-bon-v2/web/models"
-	"github.com/MarcelArt/kas-bon-v2/web/middlewares"
+	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
+	"github.com/MarcelArt/kas-bon-v2/web/middlewares"
+	webModels "github.com/MarcelArt/kas-bon-v2/web/models"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -142,8 +143,11 @@ func (h *AuthHandler) HandleSelectOrg(c fiber.Ctx) error {
 
 	setDomainCookie(c, id)
 
-	c.Set("HX-Redirect", "/apps")
-	return c.SendStatus(fiber.StatusOK)
+	return c.Redirect().To("/apps")
+}
+
+func isProduction() bool {
+	return configs.Env.ServerENV == "prod"
 }
 
 func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember bool) {
@@ -152,12 +156,13 @@ func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember b
 	if isRemember {
 		rtMaxAge = int((30 * 24 * time.Hour).Seconds())
 	}
+	secure := isProduction()
 
 	cookie := fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		MaxAge:   atMaxAge,
 		Path:     "/",
@@ -168,7 +173,7 @@ func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember b
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		MaxAge:   rtMaxAge,
 		Path:     "/",
@@ -186,7 +191,7 @@ func setAppCookie(c fiber.Ctx) {
 		Name:     "current_app_id",
 		Value:    strconv.FormatUint(uint64(enums.AppID), 10),
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   isProduction(),
 		SameSite: "Strict",
 		Path:     "/",
 	})
@@ -197,7 +202,7 @@ func setDomainCookie(c fiber.Ctx, domainID uint) {
 		Name:     "current_domain_id",
 		Value:    strconv.FormatUint(uint64(domainID), 10),
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   isProduction(),
 		SameSite: "Strict",
 		Path:     "/",
 	})

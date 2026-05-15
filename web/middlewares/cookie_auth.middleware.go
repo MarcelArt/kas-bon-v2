@@ -9,6 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func isProduction() bool {
+	return configs.Env.ServerENV == "prod"
+}
+
 func CookieAuth(userSvc services.IUserService) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		accessToken := c.Cookies("access_token")
@@ -112,12 +116,13 @@ func GuestOnly() fiber.Handler {
 }
 
 func ClearTokenCookies(c fiber.Ctx) {
+	secure := isProduction()
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    "",
 		MaxAge:   -1,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		Path:     "/",
 	})
@@ -126,19 +131,20 @@ func ClearTokenCookies(c fiber.Ctx) {
 		Value:    "",
 		MaxAge:   -1,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		Path:     "/",
 	})
 }
 
 func ClearContextCookies(c fiber.Ctx) {
+	secure := isProduction()
 	c.Cookie(&fiber.Cookie{
 		Name:     "current_app_id",
 		Value:    "",
 		MaxAge:   -1,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		Path:     "/",
 	})
@@ -147,13 +153,14 @@ func ClearContextCookies(c fiber.Ctx) {
 		Value:    "",
 		MaxAge:   -1,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		Path:     "/",
 	})
 }
 
 func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember bool) {
+	secure := isProduction()
 	atMaxAge := 5 * 60
 	rtMaxAge := int((24 * time.Hour).Seconds())
 	if isRemember {
@@ -164,7 +171,7 @@ func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember b
 		Name:     "access_token",
 		Value:    accessToken,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		MaxAge:   atMaxAge,
 		Path:     "/",
@@ -173,7 +180,7 @@ func setTokenCookies(c fiber.Ctx, accessToken, refreshToken string, isRemember b
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   secure,
 		SameSite: "Strict",
 		MaxAge:   rtMaxAge,
 		Path:     "/",

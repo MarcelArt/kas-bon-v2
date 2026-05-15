@@ -7,7 +7,6 @@
   <title>Select Organization - KAS Bon</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono/index.css">
   <link rel="stylesheet" href="/public/css/styles.css">
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
 <body>
   <div class="auth-page">
@@ -20,7 +19,7 @@
       <div class="auth-card">
         <div class="org-list">
           {{range .Organizations}}
-          <form hx-post="/select-org" hx-indicator="this">
+          <form method="POST" action="/select-org">
             <input type="hidden" name="domain_id" value="{{.ID}}">
             <button type="submit" class="org-item">
               <div class="org-item-info">
@@ -37,19 +36,6 @@
       </div>
     </div>
   </div>
-
-  <script>
-    document.body.addEventListener('htmx:afterRequest', function(e) {
-      if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/select-org') {
-        if (e.detail.xhr && e.detail.xhr.status === 200) {
-          var redirect = e.detail.xhr.getResponseHeader('HX-Redirect');
-          if (redirect) {
-            window.location.href = redirect;
-          }
-        }
-      }
-    });
-  </script>
 </body>
 </html>
 {{end}}

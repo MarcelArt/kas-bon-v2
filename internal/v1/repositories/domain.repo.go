@@ -14,6 +14,7 @@ type IDomainRepo interface {
 	Delete(id any) error
 	GetByID(id any) (models.Domain, error)
 	GetOrganizationsByNames(name []string) ([]models.Domain, error)
+	GetDomainByNamesAndParentID(c fiber.Ctx, parentID any, names []string) (paginate.Page, []models.Domain)
 }
 
 type DomainRepo struct {
@@ -63,4 +64,14 @@ func (r *DomainRepo) GetOrganizationsByNames(name []string) ([]models.Domain, er
 	var domains []models.Domain
 	err := r.db.Where("name in ? and is_organization = true", name).Find(&domains).Error
 	return domains, err
+}
+
+func (r *DomainRepo) GetDomainByNamesAndParentID(c fiber.Ctx, parentID any, names []string) (paginate.Page, []models.Domain) {
+	domains := make([]models.Domain, 0)
+	pg := paginate.New()
+
+	stmt := r.db.Model(domains).Where("name in ? and (parent_id = ? or id = ?)", names, parentID, parentID)
+
+	page := pg.With(stmt).Request(c.Request()).Response(&domains)
+	return page, domains
 }

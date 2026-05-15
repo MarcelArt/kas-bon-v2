@@ -18,6 +18,7 @@ type IDomainService interface {
 	Delete(id any) error
 	GetByID(id any) (models.Domain, error)
 	GetUsers(id any) ([]models.DomainUser, error)
+	GetUserDomains(c fiber.Ctx, id any, parentID any) (page paginate.Page, domains []models.Domain)
 }
 
 type DomainService struct {
@@ -103,4 +104,25 @@ func (s *DomainService) GetUsers(id any) ([]models.DomainUser, error) {
 	// }
 
 	return res, nil
+}
+
+func (s *DomainService) GetUserDomains(c fiber.Ctx, id any, parentID any) (page paginate.Page, domains []models.Domain) {
+	user, err := s.uRepo.GetByID(id)
+	if err != nil {
+		page.Error = true
+		page.RawError = err
+		page.ErrorMessage = fmt.Sprintf("failed retrieving user: %s", err.Error())
+		return page, nil
+	}
+
+	doms, err := s.e.GetDomainsForUser(user.Username)
+	if err != nil {
+		page.Error = true
+		page.RawError = err
+		page.ErrorMessage = fmt.Sprintf("failed policies of user: %s", err.Error())
+		return page, nil
+	}
+
+	return s.repo.GetDomainByNamesAndParentID(c, parentID, doms)
+
 }

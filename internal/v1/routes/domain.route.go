@@ -13,6 +13,7 @@ func SetupDomainRoutes(v1 fiber.Router, authz *middlewares.CasbinMiddleware, dom
 	h := handlers.NewDomainHandler(domainSvc)
 
 	domains.Get("/", middlewares.Authn(), authz.HasPermission("domains#read"), h.Read)
+	domains.Get("/user/:parent_id", middlewares.Authn(), authz.HasPermission("domains#read"), h.GetUserDomains)
 	domains.Get("/:id", middlewares.Authn(), authz.HasPermission("domains#read"), h.GetByID)
 	domains.Get("/:id/users", middlewares.Authn(), authz.HasPermission("domains#read"), h.GetUsers)
 

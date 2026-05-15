@@ -150,3 +150,29 @@ func (h *DomainHandler) GetUsers(c fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(common.NewJSONResponse(users, "Users found"))
 }
+
+// @Summary		Get user domains
+// @Description	Retrieve paginated domains for the authenticated user filtered by parent ID
+// @Tags			domains
+// @Security		ApiKeyAuth
+// @Produce			json
+// @Param			X-App-Id		header		int			true	"App identifier"
+// @Param			X-Domain-Id	header		int			true	"Domain identifier"
+// @Param			parent_id	path		string	true	"Parent domain ID"
+// @Param			page		query		int		false	"Page"
+// @Param			size		query		int		false	"Size"
+// @Param			sort		query		string	false	"Sort"
+// @Param			filters		query		string	false	"Filter"
+// @Success			200			{object}	common.JSONResponse{items=models.Domain}
+// @Failure			500			{object}	common.JSONResponse
+// @Router			/v1/domains/user/{parent_id} [get]
+func (h *DomainHandler) GetUserDomains(c fiber.Ctx) error {
+	parentId := c.Params("parent_id")
+	claims := common.FiberCtxToClaims(c)
+	userID := claims["userId"]
+
+	page, _ := h.svc.GetUserDomains(c, userID, parentId)
+
+	return c.Status(fiber.StatusOK).JSON(page)
+
+}

@@ -161,12 +161,18 @@ type AlertData struct {
 }
 
 type OrgViewModel struct {
-	ID          uint
-	Name        string
-	Description string
+	ID            uint
+	Name          string
+	Description   string
+	IsCurrentOrg  bool
 }
 
 type OrgSelectPageData struct {
+	PageData
+	Organizations []OrgViewModel
+}
+
+type OrganizationsPageData struct {
 	PageData
 	Organizations []OrgViewModel
 }

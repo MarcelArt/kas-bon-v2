@@ -1,0 +1,23 @@
+{{define "org_row"}}
+<tr id="org-row-{{.ID}}">
+  <td class="cell-name">
+    {{.Name}}
+    {{if .IsCurrentOrg}}<span class="badge">Active</span>{{end}}
+  </td>
+  <td class="cell-desc">{{if .Description}}{{.Description}}{{else}}<span class="text-muted">&mdash;</span>{{end}}</td>
+  <td class="col-actions">
+    <div class="cell-actions">
+      {{if not .IsCurrentOrg}}
+      <form hx-post="/organizations/switch" hx-indicator="this" style="display:inline">
+        <input type="hidden" name="domain_id" value="{{.ID}}">
+        <button type="submit" class="btn btn-ghost btn-xs" title="Switch to this organization">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 3 11 8 6 13"></polyline>
+          </svg>
+        </button>
+      </form>
+      {{end}}
+    </div>
+  </td>
+</tr>
+{{end}}

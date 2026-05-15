@@ -78,6 +78,11 @@ func SetupWebRoutes(app fiber.Router, userSvc services.IUserService, e *casbin.E
 		e,
 	)
 	domainH := handlers.NewDomainHandler(domainSvc)
+	orgH := handlers.NewOrgHandler(domainSvc, userSvc)
+	protected.Get("/organizations", authz.HasPermission("domains#read"), orgH.OrgsPage)
+	protected.Get("/organizations/new", authz.HasPermission("domains#create"), orgH.CreateOrgForm)
+	protected.Post("/organizations", authz.HasPermission("domains#create"), orgH.CreateOrg)
+	protected.Post("/organizations/switch", orgH.SwitchOrg)
 	protected.Get("/domains", authz.HasPermission("domains#read"), domainH.DomainsPage)
 	protected.Get("/domains/new", authz.HasPermission("domains#create"), domainH.CreateDomainForm)
 	protected.Post("/domains", authz.HasPermission("domains#create"), domainH.CreateDomain)

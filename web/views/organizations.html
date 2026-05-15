@@ -1,0 +1,28 @@
+{{define "organizations"}}
+{{template "layout" .}}
+{{end}}
+
+{{define "organizations_content"}}
+<div class="organizations-page">
+  <div class="section-header">
+    <p class="section-desc">Manage and switch your organizations</p>
+    {{if index .Permissions "domains#create"}}
+    <button class="btn btn-primary" hx-get="/organizations/new" hx-target="#org-dialog-content" hx-swap="innerHTML"
+            @click="document.getElementById('org-dialog').showModal()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="8" y1="2" x2="8" y2="14"></line>
+        <line x1="2" y1="8" x2="14" y2="8"></line>
+      </svg>
+      New Organization
+    </button>
+    {{end}}
+  </div>
+
+  {{template "orgs_table" .}}
+
+  <dialog id="org-dialog" class="dialog">
+    <div class="dialog-content" id="org-dialog-content">
+    </div>
+  </dialog>
+</div>
+{{end}}

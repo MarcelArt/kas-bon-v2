@@ -18,7 +18,7 @@ type IDomainService interface {
 	Delete(id any) error
 	GetByID(id any) (models.Domain, error)
 	GetUsers(id any) ([]models.DomainUser, error)
-	GetUserDomains(c fiber.Ctx, id any, parentID any) (page paginate.Page, domains []models.Domain)
+	GetUserDomains(c fiber.Ctx, userID any, parentID any) (page paginate.Page, domains []models.Domain)
 }
 
 type DomainService struct {
@@ -106,8 +106,8 @@ func (s *DomainService) GetUsers(id any) ([]models.DomainUser, error) {
 	return res, nil
 }
 
-func (s *DomainService) GetUserDomains(c fiber.Ctx, id any, parentID any) (page paginate.Page, domains []models.Domain) {
-	user, err := s.uRepo.GetByID(id)
+func (s *DomainService) GetUserDomains(c fiber.Ctx, userID any, parentID any) (page paginate.Page, domains []models.Domain) {
+	user, err := s.uRepo.GetByID(userID)
 	if err != nil {
 		page.Error = true
 		page.RawError = err

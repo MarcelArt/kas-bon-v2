@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/models"
 	"github.com/MarcelArt/kas-bon-v2/internal/v1/services"
 	webModels "github.com/MarcelArt/kas-bon-v2/web/models"
@@ -16,7 +18,9 @@ func NewDomainHandler(domainSvc services.IDomainService) *DomainHandler {
 }
 
 func (h *DomainHandler) DomainsPage(c fiber.Ctx) error {
-	page, domains := h.domainSvc.Read(c)
+	userID := c.Locals("userID")
+	parentID, _ := strconv.ParseUint(c.Cookies("current_domain_id"), 10, 64)
+	page, domains := h.domainSvc.GetUserDomains(c, userID, uint(parentID))
 	perms := getPermissions(c)
 
 	viewDomains := make([]webModels.DomainViewModel, len(domains))
